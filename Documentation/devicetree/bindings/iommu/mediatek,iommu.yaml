@@ -81,6 +81,7 @@ properties:
           - mediatek,mt8195-iommu-vdo        # generation two
           - mediatek,mt8195-iommu-vpp        # generation two
           - mediatek,mt8195-iommu-infra      # generation two
+          - mediatek,mt8365-m4u  # generation two
 
       - description: mt7623 generation one
         items:
@@ -125,7 +126,12 @@ properties:
       dt-binding/memory/mt8183-larb-port.h for mt8183,
       dt-binding/memory/mt8186-memory-port.h for mt8186,
       dt-binding/memory/mt8192-larb-port.h for mt8192.
+<<<<<<< HEAD
       dt-binding/memory/mt8195-memory-port.h for mt8195.
+||||||| parent of 8e5325eb8e77 (dt-bindings: iommu: mediatek: add binding documentation for MT8365 SoC)
+=======
+      dt-binding/memory/mt8365-larb-port.h for mt8365.
+>>>>>>> 8e5325eb8e77 (dt-bindings: iommu: mediatek: add binding documentation for MT8365 SoC)
 
   power-domains:
     maxItems: 1
