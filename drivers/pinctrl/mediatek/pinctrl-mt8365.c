@@ -454,6 +454,7 @@ static const struct mtk_pinctrl_devdata mt8365_pinctrl_data = {
 		.ap_num = 160,
 		.db_cnt = 160,
 	},
+	.quirks = MTK_PINCTRL_MODE_SET_CLR_BROKEN,
 };
 
 static const struct of_device_id mt8365_pctrl_match[] = {
