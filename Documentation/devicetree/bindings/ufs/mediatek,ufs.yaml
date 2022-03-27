@@ -14,16 +14,31 @@ allOf:
 
 properties:
   compatible:
-    enum:
-      - mediatek,mt8183-ufshci
-      - mediatek,mt8192-ufshci
+    oneOf:
+      - enum:
+          - mediatek,mt8183-ufshci
+          - mediatek,mt8192-ufshci
+      - items:
+          - const: mediatek,mt8195-ufshci
+          - const: mediatek,mt8183-ufshci
 
   clocks:
-    maxItems: 1
+    minItems: 1
+    maxItems: 8
 
   clock-names:
-    items:
-      - const: ufs
+    oneOf:
+      - items:
+          - const: ufs
+      - items:
+          - const: ufs
+          - const: ufs_aes
+          - const: ufs_tick
+          - const: unipro_sysclk
+          - const: unipro_tick
+          - const: unipro_mp_bclk
+          - const: ufs_tx_symbol
+          - const: ufs_mem_sub
 
   phys:
     maxItems: 1
