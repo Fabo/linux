@@ -50,12 +50,12 @@ struct mtk_pmic_keys_regs {
 	.intsel_mask		= _intsel_mask,		\
 }
 
-struct mtk_pmic_regs {
+struct mtk_pmic_keys_pdata {
 	const struct mtk_pmic_keys_regs keys_regs[MTK_PMIC_MAX_KEY_COUNT];
 	u32 pmic_rst_reg;
 };
 
-static const struct mtk_pmic_regs mt6397_regs = {
+static const struct mtk_pmic_keys_pdata mt6397_pdata = {
 	.keys_regs[MTK_PMIC_PWRKEY_INDEX] =
 		MTK_PMIC_KEYS_REGS(MT6397_CHRSTATUS,
 		0x8, MT6397_INT_RSV, 0x10),
@@ -65,7 +65,7 @@ static const struct mtk_pmic_regs mt6397_regs = {
 	.pmic_rst_reg = MT6397_TOP_RST_MISC,
 };
 
-static const struct mtk_pmic_regs mt6323_regs = {
+static const struct mtk_pmic_keys_pdata mt6323_pdata = {
 	.keys_regs[MTK_PMIC_PWRKEY_INDEX] =
 		MTK_PMIC_KEYS_REGS(MT6323_CHRSTATUS,
 		0x2, MT6323_INT_MISC_CON, 0x10),
@@ -75,7 +75,7 @@ static const struct mtk_pmic_regs mt6323_regs = {
 	.pmic_rst_reg = MT6323_TOP_RST_MISC,
 };
 
-static const struct mtk_pmic_regs mt6358_regs = {
+static const struct mtk_pmic_keys_pdata mt6358_pdata = {
 	.keys_regs[MTK_PMIC_PWRKEY_INDEX] =
 		MTK_PMIC_KEYS_REGS(MT6358_TOPSTATUS,
 				   0x2, MT6358_PSC_TOP_INT_CON0, 0x5),
@@ -255,13 +255,13 @@ static SIMPLE_DEV_PM_OPS(mtk_pmic_keys_pm_ops, mtk_pmic_keys_suspend,
 static const struct of_device_id of_mtk_pmic_keys_match_tbl[] = {
 	{
 		.compatible = "mediatek,mt6397-keys",
-		.data = &mt6397_regs,
+		.data = &mt6397_pdata,
 	}, {
 		.compatible = "mediatek,mt6323-keys",
-		.data = &mt6323_regs,
+		.data = &mt6323_pdata,
 	}, {
 		.compatible = "mediatek,mt6358-keys",
-		.data = &mt6358_regs,
+		.data = &mt6358_pdata,
 	}, {
 		/* sentinel */
 	}
@@ -277,7 +277,7 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
 	static const char *const irqnames[] = { "powerkey", "homekey" };
 	static const char *const irqnames_r[] = { "powerkey_r", "homekey_r" };
 	struct mtk_pmic_keys *keys;
-	const struct mtk_pmic_regs *mtk_pmic_regs;
+	const struct mtk_pmic_keys_pdata *mtk_pmic_keys_pdata;
 	struct input_dev *input_dev;
 	const struct of_device_id *of_id =
 		of_match_device(of_mtk_pmic_keys_match_tbl, &pdev->dev);
@@ -288,7 +288,7 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
 
 	keys->dev = &pdev->dev;
 	keys->regmap = pmic_chip->regmap;
-	mtk_pmic_regs = of_id->data;
+	mtk_pmic_keys_pdata = of_id->data;
 
 	keys->input_dev = input_dev = devm_input_allocate_device(keys->dev);
 	if (!input_dev) {
@@ -310,7 +310,7 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
 	}
 
 	for_each_child_of_node(node, child) {
-		keys->keys[index].regs = &mtk_pmic_regs->keys_regs[index];
+		keys->keys[index].regs = &mtk_pmic_keys_pdata->keys_regs[index];
 
 		keys->keys[index].irq =
 			platform_get_irq_byname(pdev, irqnames[index]);
@@ -358,7 +358,7 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
 		return error;
 	}
 
-	mtk_pmic_keys_lp_reset_setup(keys, mtk_pmic_regs->pmic_rst_reg);
+	mtk_pmic_keys_lp_reset_setup(keys, mtk_pmic_keys_pdata->pmic_rst_reg);
 
 	platform_set_drvdata(pdev, keys);
 
