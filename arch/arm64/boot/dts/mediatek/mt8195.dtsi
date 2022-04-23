@@ -453,6 +453,7 @@
 					};
 				};
 
+#if 0
 				power-domain@MT8195_POWER_DOMAIN_VPPSYS0 {
 					reg = <MT8195_POWER_DOMAIN_VPPSYS0>;
 					clocks = <&topckgen CLK_TOP_VPP>,
@@ -661,6 +662,7 @@
 						};
 					};
 				};
+#endif
 			};
 		};
 
