@@ -246,6 +246,17 @@
 	status = "okay";
 };
 
+&mt6359keys {
+	key-0 {
+		linux,keycodes = <KEY_POWER>;
+		wakeup-source;
+	};
+
+	key-1 {
+		linux,keycodes = <KEY_HOME>;
+	};
+};
+
 &mt6359_vbbck_ldo_reg {
 	regulator-always-on;
 };
