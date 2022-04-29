@@ -81,8 +81,8 @@ static int tusb320_check_signature(struct tusb320_priv *priv)
 		if (ret < 0)
 			return ret;
 		if (val != sig[i]) {
-			dev_err(priv->dev, "signature mismatch!\n");
-			return -ENODEV;
+			dev_err(priv->dev, "signature mismatch [%d] = %c!\n", i, val);
+			//return -ENODEV;
 		}
 	}
 
@@ -202,7 +202,7 @@ static irqreturn_t tusb320_irq_handler(int irq, void *dev_id)
 		TUSB320_REG9_ATTACHED_STATE_MASK;
 	polarity = !!(reg & TUSB320_REG9_CABLE_DIRECTION);
 
-	dev_dbg(priv->dev, "attached state: %s, polarity: %d\n",
+	dev_err(priv->dev, "attached state: %s, polarity: %d\n",
 		tusb_attached_states[state], polarity);
 
 	extcon_set_state(priv->edev, EXTCON_USB,

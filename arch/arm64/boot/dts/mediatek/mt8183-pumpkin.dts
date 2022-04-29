@@ -37,6 +37,26 @@
 			reg = <0 0x50000000 0 0x2900000>;
 			no-map;
 		};
+
+		/* 12 MiB reserved for OP-TEE (BL32)
+		 * +-----------------------+ 0x43e0_0000
+		 * |      SHMEM 2MiB       |
+		 * +-----------------------+ 0x43c0_0000
+		 * |        | TA_RAM  8MiB |
+		 * + TZDRAM +--------------+ 0x4340_0000
+		 * |        | TEE_RAM 2MiB |
+		 * +-----------------------+ 0x4320_0000
+		 */
+		optee_reserved: optee@43200000 {
+			no-map;
+			reg = <0 0x43200000 0 0x00c00000>;
+		};
+
+		/* 192 KiB reserved for ARM Trusted Firmware (BL31) */
+		bl31_secmon_reserved: secmon@54600000 {
+			no-map;
+			reg = <0 0x54600000 0x0 0x30000>;
+		};
 	};
 
 	leds {
@@ -74,6 +94,16 @@
 			};
 		};
 	};
+
+	usb_vbus: regulator-0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&pio 42 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		status = "disabled";
+	};
 };
 
 &auxadc {
@@ -90,6 +120,14 @@
 	pinctrl-0 = <&i2c_pins_0>;
 	status = "okay";
 	clock-frequency = <100000>;
+
+	tusb322i: typec@47 {
+		compatible = "ti,tusb320";
+		reg = <0x47>;
+		interrupts-extended = <&pio 166 GPIO_ACTIVE_LOW>;
+		pinctrl-0 = <&tusb322i_pins>;
+		pinctrl-names = "default";
+	};
 };
 
 &i2c1 {
@@ -452,6 +490,13 @@
 			output-low;
 		};
 	};
+
+	tusb322i_pins: tusb322i-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO166__FUNC_GPIO166>;
+			input-enable;
+		};
+	};
 };
 
 &mfg {
@@ -518,9 +563,12 @@
 &ssusb {
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_pins>;
+	mediatek,force-vbus;
 	maximum-speed = "high-speed";
-	dr_mode = "host";
+	extcon = <&tusb322i>;
+	dr_mode = "otg";
 	vusb33-supply = <&mt6358_vusb_reg>;
+	//vbus-supply = <&usb_vbus>;
 	status = "okay";
 };
 

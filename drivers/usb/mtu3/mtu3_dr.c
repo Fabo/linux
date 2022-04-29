@@ -191,6 +191,7 @@ static int ssusb_id_notifier(struct notifier_block *nb,
 		container_of(nb, struct otg_switch_mtk, id_nb);
 
 	ssusb_set_mode(otg_sx, event ? USB_ROLE_HOST : USB_ROLE_DEVICE);
+	pr_err("XXX: set mode %d\n", event ? USB_ROLE_HOST : USB_ROLE_DEVICE);
 
 	return NOTIFY_DONE;
 }
