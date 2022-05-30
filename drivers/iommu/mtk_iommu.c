@@ -109,8 +109,10 @@
 #define F_MMU_INT_ID_SUB_COMM_ID(a)		(((a) >> 7) & 0x3)
 #define F_MMU_INT_ID_COMM_ID_EXT(a)		(((a) >> 10) & 0x7)
 #define F_MMU_INT_ID_SUB_COMM_ID_EXT(a)		(((a) >> 7) & 0x7)
-#define F_MMU_INT_ID_LARB_ID(a)			(((a) >> 7) & 0x7)
-#define F_MMU_INT_ID_PORT_ID(a)			(((a) >> 2) & 0x1f)
+#define F_MMU_INT_ID_LARB_ID(a, port_width)	\
+				((a) >> ((port_width + 2) & 0x7))
+#define F_MMU_INT_ID_PORT_ID(a, port_width)	\
+				(((a) >> 2) & GENMASK(port_width - 1, 0))
 
 #define MTK_PROTECT_PA_ALIGN			256
 #define MTK_IOMMU_BANK_SZ			0x1000
@@ -186,6 +188,7 @@ struct mtk_iommu_plat_data {
 	enum mtk_iommu_plat	m4u_plat;
 	u32			flags;
 	u32			inv_sel_reg;
+	u8			port_width;
 
 	char			*pericfg_comp_str;
 	struct list_head	*hw_list;
@@ -439,7 +442,8 @@ static irqreturn_t mtk_iommu_isr(int irq, void *dev_id)
 	fault_pa |= (u64)pa34_32 << 32;
 
 	if (MTK_IOMMU_IS_TYPE(plat_data, MTK_IOMMU_TYPE_MM)) {
-		fault_port = F_MMU_INT_ID_PORT_ID(regval);
+		fault_port = F_MMU_INT_ID_PORT_ID(regval,
+						  data->plat_data->port_width);
 		if (MTK_IOMMU_HAS_FLAG(plat_data, HAS_SUB_COMM_2BITS)) {
 			fault_larb = F_MMU_INT_ID_COMM_ID(regval);
 			sub_comm = F_MMU_INT_ID_SUB_COMM_ID(regval);
@@ -447,7 +451,8 @@ static irqreturn_t mtk_iommu_isr(int irq, void *dev_id)
 			fault_larb = F_MMU_INT_ID_COMM_ID_EXT(regval);
 			sub_comm = F_MMU_INT_ID_SUB_COMM_ID_EXT(regval);
 		} else {
-			fault_larb = F_MMU_INT_ID_LARB_ID(regval);
+			fault_larb = F_MMU_INT_ID_LARB_ID(regval,
+						data->plat_data->port_width);
 		}
 		fault_larb = data->plat_data->larbid_remap[fault_larb][sub_comm];
 	}
@@ -1396,6 +1401,7 @@ static const struct mtk_iommu_plat_data mt2712_data = {
 	.banks_enable = {true},
 	.iova_region_nr = ARRAY_SIZE(single_domain),
 	.larbid_remap = {{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}},
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt6779_data = {
@@ -1408,6 +1414,7 @@ static const struct mtk_iommu_plat_data mt6779_data = {
 	.iova_region   = single_domain,
 	.iova_region_nr = ARRAY_SIZE(single_domain),
 	.larbid_remap  = {{0}, {1}, {2}, {3}, {5}, {7, 8}, {10}, {9}},
+	.port_width    = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8167_data = {
@@ -1419,6 +1426,7 @@ static const struct mtk_iommu_plat_data mt8167_data = {
 	.iova_region  = single_domain,
 	.iova_region_nr = ARRAY_SIZE(single_domain),
 	.larbid_remap = {{0}, {1}, {2}}, /* Linear mapping. */
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8173_data = {
@@ -1431,6 +1439,7 @@ static const struct mtk_iommu_plat_data mt8173_data = {
 	.iova_region  = single_domain,
 	.iova_region_nr = ARRAY_SIZE(single_domain),
 	.larbid_remap = {{0}, {1}, {2}, {3}, {4}, {5}}, /* Linear mapping. */
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8183_data = {
@@ -1442,6 +1451,7 @@ static const struct mtk_iommu_plat_data mt8183_data = {
 	.iova_region  = single_domain,
 	.iova_region_nr = ARRAY_SIZE(single_domain),
 	.larbid_remap = {{0}, {4}, {5}, {6}, {7}, {2}, {3}, {1}},
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8186_data_mm = {
@@ -1469,6 +1479,7 @@ static const struct mtk_iommu_plat_data mt8192_data = {
 	.iova_region_nr = ARRAY_SIZE(mt8192_multi_dom),
 	.larbid_remap   = {{0}, {1}, {4, 5}, {7}, {2}, {9, 11, 19, 20},
 			   {0, 14, 16}, {0, 13, 18, 17}},
+	.port_width     = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8195_data_infra = {
@@ -1484,6 +1495,7 @@ static const struct mtk_iommu_plat_data mt8195_data_infra = {
 			    },
 	.iova_region      = single_domain,
 	.iova_region_nr   = ARRAY_SIZE(single_domain),
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8195_data_vdo = {
@@ -1498,6 +1510,7 @@ static const struct mtk_iommu_plat_data mt8195_data_vdo = {
 	.iova_region_nr	= ARRAY_SIZE(mt8192_multi_dom),
 	.larbid_remap   = {{2, 0}, {21}, {24}, {7}, {19}, {9, 10, 11},
 			   {13, 17, 15/* 17b */, 25}, {5}},
+	.port_width   = 5,
 };
 
 static const struct mtk_iommu_plat_data mt8195_data_vpp = {
@@ -1516,6 +1529,7 @@ static const struct mtk_iommu_plat_data mt8195_data_vpp = {
 			   /* 16: 16a; 29: 16b; 30: CCUtop0; 31: CCUtop1 */
 			   {14, 16, 29, 26, 30, 31, 18},
 			   {4, MTK_INVALID_LARBID, MTK_INVALID_LARBID, MTK_INVALID_LARBID, 6}},
+	.port_width   = 5,
 };
 
 static const struct of_device_id mtk_iommu_of_ids[] = {
