@@ -63,6 +63,24 @@
 		reg = <0 0x40000000 0 0xc0000000>;
 	};
 
+	mmc2_fixed_pmu: regulator-0 {
+		compatible = "regulator-fixed";
+		regulator-name = "mmc2_pmu";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&pio 121 0>;
+		enable-active-high;
+	};
+
+	mmc2_fixed_rst: regulator-1 {
+		compatible = "regulator-fixed";
+		regulator-name = "mmc2_rst";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		gpio = <&pio 120 0>;
+		enable-active-high;
+	};
+
 	usb_otg_vbus: regulator-2 {
 		compatible = "regulator-fixed";
 		regulator-name = "otg_vbus";
@@ -235,6 +253,28 @@
 	sd-uhs-sdr104;
 	vmmc-supply = <&mt6357_vmch_reg>;
 	vqmmc-supply = <&mt6357_vio18_reg>;
+	status = "okay";
+};
+
+&mmc2 {
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc2_pins_default>;
+	pinctrl-1 = <&mmc2_pins_uhs>;
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	keep-power-in-suspend;
+	enable-sdio-wakeup;
+	cap-sdio-irq;
+	hs400-ds-delay = <0x12012>;
+	vmmc-supply = <&mmc2_fixed_pmu>;
+	vqmmc-supply = <&mmc2_fixed_rst>;
+	assigned-clocks = <&topckgen CLK_TOP_MSDC50_2_SEL>;
+	assigned-clock-parents = <&topckgen CLK_TOP_MSDCPLL>;
+	non-removable;
 	status = "okay";
 };
 
@@ -481,6 +521,70 @@
 			input-enable;
 			drive-strength = <MTK_DRIVE_6mA>;
 			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+		};
+	};
+
+	mmc2_pins_default: mmc2-default-pins {
+		pins-clk {
+			pinmux = <MT8365_PIN_81_MSDC2_CLK__FUNC_MSDC2_CLK>;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+		};
+
+		pins-cmd-dat {
+			pinmux = <MT8365_PIN_82_MSDC2_DAT0__FUNC_MSDC2_DAT0>,
+				 <MT8365_PIN_83_MSDC2_DAT1__FUNC_MSDC2_DAT1>,
+				 <MT8365_PIN_84_MSDC2_DAT2__FUNC_MSDC2_DAT2>,
+				 <MT8365_PIN_85_MSDC2_DAT3__FUNC_MSDC2_DAT3>,
+				 <MT8365_PIN_80_MSDC2_CMD__FUNC_MSDC2_CMD>;
+			input-enable;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+		};
+
+		pins-sysrstb-en {
+			pinmux = <MT8365_PIN_120_DMIC1_CLK__FUNC_GPIO120>;
+			output-low;
+		};
+
+		pins-wifi-pwr-en {
+			pinmux = <MT8365_PIN_121_DMIC1_DAT0__FUNC_GPIO121>;
+			output-high;
+		};
+	};
+
+	mmc2_pins_uhs: mmc2-uhs-pins {
+		pin-clk {
+			pinmux = <MT8365_PIN_81_MSDC2_CLK__FUNC_MSDC2_CLK>;
+			drive-strength = <MTK_DRIVE_8mA>;
+			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+		};
+
+		pins-cmd-dat {
+			pinmux = <MT8365_PIN_82_MSDC2_DAT0__FUNC_MSDC2_DAT0>,
+				 <MT8365_PIN_83_MSDC2_DAT1__FUNC_MSDC2_DAT1>,
+				 <MT8365_PIN_84_MSDC2_DAT2__FUNC_MSDC2_DAT2>,
+				 <MT8365_PIN_85_MSDC2_DAT3__FUNC_MSDC2_DAT3>,
+				 <MT8365_PIN_80_MSDC2_CMD__FUNC_MSDC2_CMD>;
+			input-enable;
+			drive-strength = <MTK_DRIVE_8mA>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+		};
+
+		pin-ds {
+			pinmux = <MT8365_PIN_86_MSDC2_DSL__FUNC_MSDC2_DSL>;
+			drive-strength = <MTK_DRIVE_8mA>;
+			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+		};
+
+		pins-sysrstb-en {
+			pinmux = <MT8365_PIN_120_DMIC1_CLK__FUNC_GPIO120>;
+			output-high;
+		};
+
+		pins-wifi-pwr-en {
+			pinmux = <MT8365_PIN_121_DMIC1_DAT0__FUNC_GPIO121>;
+			output-high;
 		};
 	};
 
