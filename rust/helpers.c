@@ -30,6 +30,7 @@
 #include <linux/fs.h>
 #include <linux/i2c.h>
 #include <linux/mutex.h>
+#include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/refcount.h>
@@ -347,6 +348,20 @@ int rust_helper_regmap_field_force_update_bits(struct regmap_field *field,
 	return regmap_field_force_update_bits(field, mask, val);
 }
 EXPORT_SYMBOL_GPL(rust_helper_regmap_field_force_update_bits);
+
+bool rust_helper_of_node_is_root(const struct device_node *np)
+{
+	return of_node_is_root(np);
+}
+EXPORT_SYMBOL_GPL(rust_helper_of_node_is_root);
+
+struct device_node *rust_helper_of_parse_phandle(const struct device_node *np,
+		const char *phandle_name,
+		int index)
+{
+	return of_parse_phandle(np, phandle_name, index);
+}
+EXPORT_SYMBOL_GPL(rust_helper_of_parse_phandle);
 
 /*
  * `bindgen` binds the C `size_t` type as the Rust `usize` type, so we can
