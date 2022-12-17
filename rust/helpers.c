@@ -26,6 +26,7 @@
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/errname.h>
+#include <linux/i2c.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -193,6 +194,18 @@ void rust_helper_platform_set_drvdata(struct platform_device *pdev, void *data)
 	return platform_set_drvdata(pdev, data);
 }
 EXPORT_SYMBOL_GPL(rust_helper_platform_set_drvdata);
+
+void *rust_helper_i2c_get_clientdata(const struct i2c_client *client)
+{
+	return i2c_get_clientdata(client);
+}
+EXPORT_SYMBOL_GPL(rust_helper_i2c_get_clientdata);
+
+void rust_helper_i2c_set_clientdata(struct i2c_client *client, void *data)
+{
+	i2c_set_clientdata(client, data);
+}
+EXPORT_SYMBOL_GPL(rust_helper_i2c_set_clientdata);
 
 /*
  * `bindgen` binds the C `size_t` type as the Rust `usize` type, so we can

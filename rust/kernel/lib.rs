@@ -16,6 +16,7 @@
 #![feature(coerce_unsized)]
 #![feature(const_refs_to_cell)]
 #![feature(dispatch_from_dyn)]
+#![feature(doc_cfg)]
 #![feature(new_uninit)]
 #![feature(receiver_trait)]
 #![feature(unsize)]
@@ -33,6 +34,9 @@ mod build_assert;
 pub mod device;
 pub mod driver;
 pub mod error;
+#[cfg(any(CONFIG_I2C, doc))]
+#[doc(cfg(CONFIG_I2C))]
+pub mod i2c;
 pub mod init;
 pub mod ioctl;
 #[cfg(CONFIG_KUNIT)]
