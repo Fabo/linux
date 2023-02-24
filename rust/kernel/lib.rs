@@ -37,6 +37,8 @@ pub mod device;
 pub mod error;
 pub mod init;
 pub mod ioctl;
+#[cfg(CONFIG_IOMMU_IO_PGTABLE)]
+pub mod io_pgtable;
 #[cfg(CONFIG_KUNIT)]
 pub mod kunit;
 pub mod prelude;
