@@ -14,6 +14,7 @@
 #include "err.c"
 #include "kunit.c"
 #include "mutex.c"
+#include "of.c"
 #include "page.c"
 #include "rbtree.c"
 #include "refcount.c"
