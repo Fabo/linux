@@ -27,6 +27,7 @@
 #include <linux/err.h>
 #include <linux/errname.h>
 #include <linux/mutex.h>
+#include <linux/of_device.h>
 #include <linux/rcupdate.h>
 #include <linux/refcount.h>
 #include <linux/sched/signal.h>
@@ -172,6 +173,13 @@ void rust_helper_rcu_read_unlock(void)
 }
 EXPORT_SYMBOL_GPL(rust_helper_rcu_read_unlock);
 /* end rcu */
+
+const struct of_device_id *rust_helper_of_match_device(
+		const struct of_device_id *matches, const struct device *dev)
+{
+	return of_match_device(matches, dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_of_match_device);
 
 /*
  * `bindgen` binds the C `size_t` type as the Rust `usize` type, so we can
