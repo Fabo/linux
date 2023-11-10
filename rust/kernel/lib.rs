@@ -43,6 +43,7 @@ pub mod ioctl;
 pub mod io_pgtable;
 #[cfg(CONFIG_KUNIT)]
 pub mod kunit;
+pub mod of;
 pub mod prelude;
 pub mod print;
 mod static_assert;
