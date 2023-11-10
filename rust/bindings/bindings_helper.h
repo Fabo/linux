@@ -18,6 +18,7 @@
 #include <linux/jiffies.h>
 #include <linux/mdio.h>
 #include <linux/phy.h>
+#include <linux/platform_device.h>
 #include <linux/poll.h>
 #include <linux/security.h>
 #include <linux/slab.h>
