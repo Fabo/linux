@@ -21,6 +21,7 @@
 #include <linux/phy.h>
 #include <linux/platform_device.h>
 #include <linux/poll.h>
+#include <linux/regulator/consumer.h>
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/refcount.h>
