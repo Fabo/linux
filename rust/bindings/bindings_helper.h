@@ -11,6 +11,7 @@
 #include <linux/errname.h>
 #include <linux/io-pgtable.h>
 #include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/refcount.h>
 #include <linux/wait.h>
