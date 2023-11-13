@@ -7,7 +7,9 @@ use crate::{
     error::{code::*, Error, Result},
 };
 
-/// Regulators operating modes
+pub mod consumer;
+
+/// [`consumer::Regulator`] operating modes
 #[derive(Copy, Clone)]
 #[repr(u32)]
 pub enum Mode {
