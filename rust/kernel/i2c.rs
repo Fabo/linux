@@ -9,6 +9,7 @@ use crate::{
     device::RawDevice,
     driver::{self, RawDeviceId},
     error::{from_result, to_result, Result},
+    of,
     str::{BStr, CStr},
     types::ForeignOwnable,
     ThisModule,
@@ -106,6 +107,9 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         if let Some(t) = T::I2C_DEVICE_ID_TABLE {
             i2cdrv.id_table = t.as_ref();
         }
+        if let Some(t) = T::OF_DEVICE_ID_TABLE {
+            i2cdrv.driver.of_match_table = t.as_ref();
+        }
 
         // SAFETY:
         //   - `pdrv` lives at least until the call to `platform_driver_unregister()` returns.
@@ -126,14 +130,17 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
 }
 
 impl<T: Driver> Adapter<T> {
-    fn get_id_info(client: &Client) -> Option<&'static T::IdInfo> {
+    fn get_i2c_id_info(client: &Client) -> Option<&'static T::IdInfo> {
         let table = T::I2C_DEVICE_ID_TABLE?;
 
+        // SAFETY: `table` has static lifetime, so it is valid for read. `dev` is guaranteed to be
+        // valid while it's alive, so is the raw device returned by it.
         let id = unsafe { bindings::i2c_match_id(table.as_ref(), client.ptr) };
         if id.is_null() {
             return None;
         }
 
+        //
         // SAFETY: `id` is a pointer within the static table, so it's always valid.
         let offset = unsafe { (*id).driver_data };
         if offset == 0 {
@@ -150,6 +157,44 @@ impl<T: Driver> Adapter<T> {
 
         // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
         unsafe { (&*ptr).as_ref() }
+    }
+
+    fn get_of_id_info(client: &Client) -> Option<&'static T::IdInfo> {
+        let table = T::OF_DEVICE_ID_TABLE?;
+
+        // SAFETY: `table` has static lifetime, so it is valid for read. `dev` is guaranteed to be
+        // valid while it's alive, so is the raw device returned by it.
+        let id = unsafe { bindings::of_match_device(table.as_ref(), &(*client.ptr).dev) };
+        if id.is_null() {
+            return None;
+        }
+
+        //
+        // SAFETY: `id` is a pointer within the static table, so it's always valid.
+        let offset = unsafe { (*id).data };
+        if offset.is_null() {
+            return None;
+        }
+
+        // SAFETY: The offset comes from a previous call to `offset_from` in `IdArray::new`, which
+        // guarantees that the resulting pointer is within the table.
+        let ptr = unsafe {
+            id.cast::<u8>()
+                .offset(offset as _)
+                .cast::<Option<T::IdInfo>>()
+        };
+
+        // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
+        unsafe { (&*ptr).as_ref() }
+    }
+
+    fn get_id_info(client: &Client) -> Option<&'static T::IdInfo> {
+        let id_info = Adapter::<T>::get_i2c_id_info(client);
+        if id_info.is_some() {
+            return id_info;
+        }
+
+        Adapter::<T>::get_of_id_info(client)
     }
 
     extern "C" fn probe_callback(i2c: *mut bindings::i2c_client) -> core::ffi::c_int {
@@ -195,6 +240,9 @@ pub trait Driver {
 
     /// The table of device ids supported by the driver.
     const I2C_DEVICE_ID_TABLE: Option<driver::IdTable<'static, DeviceId, Self::IdInfo>> = None;
+
+    /// The table of device ids supported by the driver.
+    const OF_DEVICE_ID_TABLE: Option<driver::IdTable<'static, of::DeviceId, Self::IdInfo>> = None;
 
     /// I2C driver probe.
     ///
