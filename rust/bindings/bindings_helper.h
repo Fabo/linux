@@ -24,6 +24,7 @@
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/refcount.h>
+#include <linux/regmap.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/task_work.h>

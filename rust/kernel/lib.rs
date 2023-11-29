@@ -55,6 +55,8 @@ pub mod of;
 pub mod platform;
 pub mod prelude;
 pub mod print;
+#[cfg(CONFIG_REGMAP)]
+pub mod regmap;
 pub mod security;
 mod static_assert;
 #[doc(hidden)]
