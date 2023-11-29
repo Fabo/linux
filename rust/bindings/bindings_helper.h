@@ -14,6 +14,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/refcount.h>
+#include <linux/regmap.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/workqueue.h>

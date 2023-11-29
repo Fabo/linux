@@ -52,6 +52,8 @@ pub mod of;
 pub mod platform;
 pub mod prelude;
 pub mod print;
+#[cfg(CONFIG_REGMAP)]
+pub mod regmap;
 mod static_assert;
 #[doc(hidden)]
 pub mod std_vendor;
