@@ -276,6 +276,10 @@ impl Client {
         // INVARIANT: The safety requirements of the function ensure the lifetime invariant.
         Self { ptr }
     }
+
+    pub unsafe fn raw_client(&self) -> *mut bindings::i2c_client {
+        self.ptr
+    }
 }
 
 // SAFETY: The device returned by `raw_device` is the raw i2c device.
