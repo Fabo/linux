@@ -111,6 +111,15 @@
 	};
 };
 
+&blsp_i2c4 {
+	status = "okay";
+
+	ncp6335d: regulator@1c {
+		compatible = "rust,rust-sample-i2c";
+		reg = <0x1c>;
+	};
+};
+
 &blsp_i2c5 {
 	status = "okay";
 };
