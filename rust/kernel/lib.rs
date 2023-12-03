@@ -15,6 +15,7 @@
 #![feature(allocator_api)]
 #![feature(associated_type_defaults)]
 #![feature(coerce_unsized)]
+#![feature(const_maybe_uninit_zeroed)]
 #![feature(const_refs_to_cell)]
 #![feature(dispatch_from_dyn)]
 #![feature(new_uninit)]
