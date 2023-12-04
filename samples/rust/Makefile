@@ -3,5 +3,6 @@
 obj-$(CONFIG_SAMPLE_RUST_MINIMAL)		+= rust_minimal.o
 obj-$(CONFIG_SAMPLE_RUST_PRINT)			+= rust_print.o
 obj-$(CONFIG_SAMPLE_RUST_REGULATOR_CONSUMER)	+= rust_regulator_consumer.o
+obj-$(CONFIG_SAMPLE_RUST_REGULATOR_DRIVER)	+= rust_regulator_driver.o
 
 subdir-$(CONFIG_SAMPLE_RUST_HOSTPROGS)		+= hostprogs

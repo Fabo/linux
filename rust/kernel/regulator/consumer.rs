@@ -10,6 +10,7 @@ use crate::{
     bindings, 
     device::{Device, RawDevice},
     error::{code::*, from_err_ptr, to_result, Error, Result},
+    regulator::Mode,
     str::CStr
 };
 use core::{
@@ -18,35 +19,6 @@ use core::{
     mem::ManuallyDrop,
     time::Duration,
 };
-
-/// [`Regulator`] operating modes
-#[derive(Copy, Clone)]
-#[repr(u32)]
-pub enum Mode {
-    /// Invalid mode
-    INVALID = bindings::REGULATOR_MODE_INVALID,
-    /// Regulator can handle fast changes in it's load
-    FAST = bindings::REGULATOR_MODE_FAST,
-    /// Normal regulator power supply mode
-    NORMAL = bindings::REGULATOR_MODE_NORMAL,
-    /// Regulator runs in a more efficient mode for light loads
-    IDLE = bindings::REGULATOR_MODE_IDLE,
-    /// Regulator runs in the most efficient mode for very light loads
-    STANDBY = bindings::REGULATOR_MODE_STANDBY,
-}
-
-impl Mode {
-    fn from_raw(mode: c_uint) -> Result<Self> {
-        match mode {
-            bindings::REGULATOR_MODE_FAST => Ok(Self::FAST),
-            bindings::REGULATOR_MODE_NORMAL => Ok(Self::NORMAL),
-            bindings::REGULATOR_MODE_IDLE => Ok(Self::IDLE),
-            bindings::REGULATOR_MODE_STANDBY => Ok(Self::STANDBY),
-            bindings::REGULATOR_MODE_INVALID => Ok(Self::INVALID),
-            _ => Err(EINVAL),
-        }
-    }
-}
 
 /// [`Regulator`] in its default state (disabled)
 ///
@@ -248,7 +220,7 @@ impl Regulator {
     /// Get the current mode of the regulator
     pub fn get_mode(&mut self) -> Result<Mode> {
         // SAFETY: The pointer is valid and non-null by the type invariant
-        Mode::from_raw(unsafe { bindings::regulator_get_mode(self.0) })
+        Mode::from_bindings(unsafe { bindings::regulator_get_mode(self.0) })
     }
 }
 

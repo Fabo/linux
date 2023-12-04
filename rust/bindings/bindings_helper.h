@@ -9,6 +9,7 @@
 #include <kunit/test.h>
 #include <linux/device.h>
 #include <linux/errname.h>
+#include <linux/fs.h>
 #include <linux/io-pgtable.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>

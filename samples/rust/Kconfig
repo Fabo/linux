@@ -40,6 +40,16 @@ config SAMPLE_RUST_REGULATOR_CONSUMER
 
 	  If unsure, say N.
 
+config SAMPLE_RUST_REGULATOR_DRIVER
+	tristate "Regulator device driver"
+	help
+	  This option builds the Rust regulator driver sample.
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_regulator_driver.
+
+	  If unsure, say N.
+
 config SAMPLE_RUST_HOSTPROGS
 	bool "Host programs"
 	help
