@@ -4,7 +4,7 @@ use core::{
 };
 use crate::{
     device::{Device, RawDevice},
-    error::{code::*, from_err_ptr, from_result, Result},
+    error::{code::*, from_err_ptr, from_result, to_result, Error, Result},
     macros::vtable, str::CStr,
     regulator::Mode,
     //regmap::Regmap,
@@ -14,147 +14,147 @@ pub type LinearRange = bindings::linear_range;
 
 #[vtable]
 pub trait Operations {
-    fn list_voltage(selector: u32) -> Result<i32> {
+    fn list_voltage(_rdev: &RegulatorDev, _selector: u32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
-    fn set_voltage(min_uv: i32, max_uv: i32) -> Result<i32> {
+    fn set_voltage(_rdev: &RegulatorDev, _min_uv: i32, _max_uv: i32) -> Result<u32> {
         Err(ENOTSUPP)
     }
 
-    fn map_voltage(min_uv: i32, max_uv: i32) -> Result<i32> {
+    fn map_voltage(_rdev: &RegulatorDev, _min_uv: i32, _max_uv: i32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
-    fn set_voltage_sel(selector: u32) -> Result {
+    fn set_voltage_sel(_rdev: &RegulatorDev, _selector: u32) -> Result {
         Err(ENOTSUPP)
     }
 
-    fn get_voltage() -> Result<i32> {
+    fn get_voltage(_rdev: &RegulatorDev) -> Result<i32> {
 		Err(ENOTSUPP)
     }
 
-    fn get_voltage_sel() -> Result<i32> {
+    fn get_voltage_sel(_rdev: &RegulatorDev) -> Result<i32> {
 		Err(ENOTSUPP)
     }
 
-	fn set_current_limit(min_ua: i32, max_ua: i32) -> Result {
+	fn set_current_limit(_rdev: &RegulatorDev, _min_ua: i32, _max_ua: i32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn get_current_limit() -> Result<i32> {
+	fn get_current_limit(_rdev: &RegulatorDev) -> Result<i32> {
 		Err(ENOTSUPP)
 	}
 
-	fn set_input_current_limit(lim_ua: i32) -> Result {
+	fn set_input_current_limit(_rdev: &RegulatorDev, _lim_ua: i32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_over_current_protection(lim_ua: i32, severity: i32, enable: bool) -> Result {
+	fn set_over_current_protection(_rdev: &RegulatorDev, _lim_ua: i32, _severity: i32, _enable: bool) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_over_voltage_protection(lim_uv: i32, severity: i32, enable: bool) -> Result {
+	fn set_over_voltage_protection(_rdev: &RegulatorDev, _lim_uv: i32, _severity: i32, _enable: bool) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_under_voltage_protection(lim_uv: i32, severity: i32, enable: bool) -> Result {
+	fn set_under_voltage_protection(_rdev: &RegulatorDev, _lim_uv: i32, _severity: i32, _enable: bool) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_thermal_protection(lim: i32, severity: i32, enable: bool) -> Result {
+	fn set_thermal_protection(_rdev: &RegulatorDev, _lim: i32, _severity: i32, _enable: bool) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_active_discharge(enable: bool) -> Result {
+	fn set_active_discharge(_rdev: &RegulatorDev, _enable: bool) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn enable() -> Result {
+	fn enable(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn disable() -> Result {
+	fn disable(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn is_enabled() -> Result<bool> {
+	fn is_enabled(_rdev: &RegulatorDev) -> Result<bool> {
 		Err(ENOTSUPP)
 	}
 
-	fn set_mode(mode: Mode) -> Result {
+	fn set_mode(_rdev: &RegulatorDev, _mode: Mode) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn get_mode() -> Mode {
+	fn get_mode(_rdev: &RegulatorDev) -> Mode {
 		Mode::Invalid
     }
 
-	fn get_error_flags() -> Result<u32> {
+	fn get_error_flags(_rdev: &RegulatorDev) -> Result<u32> {
 		Err(ENOTSUPP)
     }
 
-	fn enable_time() -> Result {
+	fn enable_time(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_ramp_delay(ramp_delay: i32) -> Result {
+	fn set_ramp_delay(_rdev: &RegulatorDev, _ramp_delay: i32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_voltage_time(old_uv: i32, new_uv: i32) -> Result {
+	fn set_voltage_time(_rdev: &RegulatorDev, _old_uv: i32, _new_uv: i32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_voltage_time_sel(old_selector: u32, new_selector: u32) -> Result {
+	fn set_voltage_time_sel(_rdev: &RegulatorDev, _old_selector: u32, _new_selector: u32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_soft_start() -> Result {
+	fn set_soft_start(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn get_status() -> Result {
+	fn get_status(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn get_optimum_mode(input_uv: i32, output_uv: i32, load_ua: i32) -> Result<u32> {
+	fn get_optimum_mode(_rdev: &RegulatorDev, _input_uv: i32, _output_uv: i32, _load_ua: i32) -> Mode {
+		Mode::Invalid
+    }
+
+	fn set_load(_rdev: &RegulatorDev, _load_ua: i32) -> Result {
+		Err(ENOTSUPP)
+	}
+
+	fn set_bypass(_rdev: &RegulatorDev, _enable: bool) -> Result {
+		Err(ENOTSUPP)
+	}
+
+	fn get_bypass(_rdev: &RegulatorDev) -> Result<bool> {
 		Err(ENOTSUPP)
     }
 
-	fn set_load(load_ua: i32) -> Result {
+	fn set_suspend_voltage(_rdev: &RegulatorDev, _uv: i32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_bypass(enable: bool) -> Result {
+	fn set_suspend_enable(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn get_bypass() -> Result<bool> {
-		Err(ENOTSUPP)
-    }
-
-	fn set_suspend_voltage(uv: i32) -> Result {
+	fn set_suspend_disable(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_suspend_enable() -> Result {
+	fn set_suspend_mode(_rdev: &RegulatorDev, _mode: u32) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_suspend_disable() -> Result {
+	fn resume(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 
-	fn set_suspend_mode(mode: u32) -> Result {
-		Err(ENOTSUPP)
-	}
-
-	fn resume() -> Result {
-		Err(ENOTSUPP)
-	}
-
-	fn set_pull_down() -> Result {
+	fn set_pull_down(_rdev: &RegulatorDev) -> Result {
 		Err(ENOTSUPP)
 	}
 }
@@ -244,6 +244,80 @@ impl RegulatorDev {
         })?;
         Ok(Self(rdev))
     }
+
+	pub fn get_voltage_sel_pickable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_get_voltage_sel_pickable_regmap(self.0) })
+    }
+
+	pub fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result {
+        to_result(unsafe { bindings::regulator_set_voltage_sel_pickable_regmap(self.0, sel) })
+    }
+
+	pub fn get_voltage_sel_regmap(&self) -> Result<i32> {
+        let ret = unsafe { bindings::regulator_get_voltage_sel_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        return Ok(ret)
+    }
+
+	pub fn set_voltage_sel_regmap(&self, sel: u32) -> Result {
+        to_result(unsafe { bindings::regulator_set_voltage_sel_regmap(self.0, sel) })
+    }
+
+	pub fn is_enabled_regmap(&self) -> Result<bool> {
+        let ret = unsafe { bindings::regulator_is_enabled_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        return Ok(ret > 0)
+    }
+
+	pub fn enable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_enable_regmap(self.0) })
+    }
+
+	pub fn disable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_disable_regmap(self.0) })
+    }
+
+	pub fn set_bypass_regmap(&self, enable: bool) -> Result {
+        to_result(unsafe { bindings::regulator_set_bypass_regmap(self.0, enable) })
+    }
+
+	pub fn get_bypass_regmap(&self) -> Result<bool> {
+        let mut enable: bool = false;
+        let ret = to_result(unsafe { bindings::regulator_get_bypass_regmap(self.0, &mut enable) });
+        ret.map(|_| enable)
+    }
+
+	pub fn set_soft_start_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_set_soft_start_regmap(self.0) })
+    }
+
+	pub fn set_pull_down_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_set_pull_down_regmap(self.0) })
+    }
+
+	pub fn set_active_discharge_regmap(&self, enable: bool) -> Result {
+        to_result(unsafe { bindings::regulator_set_active_discharge_regmap(self.0, enable) })
+    }
+
+	pub fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result {
+        to_result(unsafe { bindings::regulator_set_current_limit_regmap(self.0, min_ua, max_ua) })
+    }
+
+	pub fn get_current_limit_regmap(&self) -> Result<i32> {
+        let ret = unsafe { bindings::regulator_get_current_limit_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        return Ok(ret)
+    }
+
+	pub fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result {
+        to_result(unsafe { bindings::regulator_set_ramp_delay_regmap(self.0, ramp_delay) })
+    }
 }
 
 /// Type of regulator
@@ -258,326 +332,495 @@ pub enum Type {
 pub(crate) struct OperationsVtable<T>(PhantomData<T>);
 
 impl<T: Operations> OperationsVtable<T> {
-    unsafe extern "C" fn list_voltage(
+    unsafe extern "C" fn list_voltage_callback(
         rdev: *mut bindings::regulator_dev,
         selector: core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        from_result(|| T::list_voltage(selector))
+        from_result(|| T::list_voltage(&RegulatorDev(rdev), selector))
     }
 
-    unsafe extern "C" fn map_voltage(
+    unsafe extern "C" fn set_voltage_callback(
+        rdev: *mut bindings::regulator_dev,
+        min_uv: core::ffi::c_int,
+        max_uv: core::ffi::c_int,
+        selector: *mut core::ffi::c_uint,
+    ) -> core::ffi::c_int {
+        match T::set_voltage(&RegulatorDev(rdev), min_uv, max_uv) {
+            Ok(v) => {
+                unsafe { *selector = v };
+                0
+            }
+            Err(e) => e.to_errno()
+        }
+    }
+
+    unsafe extern "C" fn map_voltage_callback(
         rdev: *mut bindings::regulator_dev,
         min_uv: core::ffi::c_int,
         max_uv: core::ffi::c_int,
     ) -> core::ffi::c_int {
-        from_result(|| T::map_voltage(min_uv, max_uv))
+        from_result(|| T::map_voltage(&RegulatorDev(rdev), min_uv, max_uv))
     }
 
-    unsafe extern "C" fn set_voltage_sel(
+    unsafe extern "C" fn set_voltage_sel_callback(
         rdev: *mut bindings::regulator_dev,
         selector: core::ffi::c_uint,
     ) -> core::ffi::c_int {
         from_result(|| {
-            T::set_voltage_sel(selector)?;
+            T::set_voltage_sel(&RegulatorDev(rdev), selector)?;
             Ok(0)
         })
     }
 
-    unsafe extern "C" fn get_voltage_sel(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        from_result(|| T::get_voltage_sel())
+    unsafe extern "C" fn get_voltage_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| T::get_voltage(&RegulatorDev(rdev)))
     }
 
-    unsafe extern "C" fn set_current_limit(
+    unsafe extern "C" fn get_voltage_sel_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| T::get_voltage_sel(&RegulatorDev(rdev)))
+    }
+
+    unsafe extern "C" fn set_current_limit_callback(
         rdev: *mut bindings::regulator_dev,
         min_ua: core::ffi::c_int,
         max_ua: core::ffi::c_int,
     ) -> core::ffi::c_int {
         from_result(|| {
-            T::set_current_limit(min_ua, max_ua)?;
+            T::set_current_limit(&RegulatorDev(rdev), min_ua, max_ua)?;
             Ok(0)
         })
     }
 
-    unsafe extern "C" fn get_current_limit(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        from_result(|| T::get_current_limit())
+    unsafe extern "C" fn get_current_limit_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| T::get_current_limit(&RegulatorDev(rdev)))
     }
 
-    unsafe extern "C" fn set_active_discharge(rdev: *mut bindings::regulator_dev, enable: bool) -> core::ffi::c_int {
-        from_result(|| {
-            T::set_active_discharge(enable)?;
-            Ok(0)
-        })
-    }
-
-    unsafe extern "C" fn enable(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        from_result(|| {
-            T::enable()?;
-            Ok(0)
-        })
-    }
-
-    unsafe extern "C" fn disable(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        from_result(|| {
-            T::disable()?;
-            Ok(0)
-        })
-    }
-
-    unsafe extern "C" fn is_enabled(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        from_result(|| {
-            T::is_enabled()?;
-            Ok(0)
-        })
-    }
-
-    unsafe extern "C" fn set_mode(rdev: *mut bindings::regulator_dev, mode: core::ffi::c_uint) -> core::ffi::c_int {
-        from_result(|| { 
-            let mode = Mode::from_bindings(mode).unwrap_or(Mode::Invalid);
-            T::set_mode(mode)?;
-            Ok(0)
-        })
-    }
-
-    unsafe extern "C" fn get_mode(rdev: *mut bindings::regulator_dev) -> core::ffi::c_uint {
-        T::get_mode() as _
-    }
-
-    /*
-    
-    unsafe extern "C" fn set_voltage(
+    unsafe extern "C" fn set_input_current_limit_callback(
         rdev: *mut bindings::regulator_dev,
-        min_uV: core::ffi::c_int,
-        max_uV: core::ffi::c_int,
-        selector: *mut core::ffi::c_uint,
+        lim_ua: core::ffi::c_int,
     ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_input_current_limit(&RegulatorDev(rdev), lim_ua)?;
+            Ok(0)
+        })
     }
 
-    unsafe extern "C" fn get_voltage(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-    }
-    unsafe extern "C" fn set_input_current_limit(
+    unsafe extern "C" fn set_over_current_protection_callback(
         rdev: *mut bindings::regulator_dev,
-        lim_uA: core::ffi::c_int,
-    ) -> core::ffi::c_int {
-    }
-
-    unsafe extern "C" fn set_over_current_protection(
-        rdev: *mut bindings::regulator_dev,
-        lim_uA: core::ffi::c_int,
+        lim_ua: core::ffi::c_int,
         severity: core::ffi::c_int,
-        enable: bool_,
+        enable: bool,
     ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_over_current_protection(&RegulatorDev(rdev), lim_ua, severity, enable)?;
+            Ok(0)
+        })
     }
 
-    unsafe extern "C" fn set_over_voltage_protection(
+    unsafe extern "C" fn set_over_voltage_protection_callback(
         rdev: *mut bindings::regulator_dev,
-        lim_uV: core::ffi::c_int,
+        lim_uv: core::ffi::c_int,
         severity: core::ffi::c_int,
-        enable: bool_,
+        enable: bool,
     ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_over_voltage_protection(&RegulatorDev(rdev), lim_uv, severity, enable)?;
+            Ok(0)
+        })
     }
 
-    unsafe extern "C" fn set_under_voltage_protection(
+    unsafe extern "C" fn set_under_voltage_protection_callback(
         rdev: *mut bindings::regulator_dev,
-        lim_uV: core::ffi::c_int,
+        lim_uv: core::ffi::c_int,
         severity: core::ffi::c_int,
-        enable: bool_,
+        enable: bool,
     ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_under_voltage_protection(&RegulatorDev(rdev), lim_uv, severity, enable)?;
+            Ok(0)
+        })
     }
 
-    unsafe extern "C" fn set_thermal_protection(
+    unsafe extern "C" fn set_thermal_protection_callback(
         rdev: *mut bindings::regulator_dev,
         lim: core::ffi::c_int,
         severity: core::ffi::c_int,
-        enable: bool_,
+        enable: bool,
     ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_thermal_protection(&RegulatorDev(rdev), lim, severity, enable)?;
+            Ok(0)
+        })
     }
-    unsafe extern "C" fn get_error_flags(
+
+    unsafe extern "C" fn set_active_discharge_callback(rdev: *mut bindings::regulator_dev, enable: bool) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_active_discharge(&RegulatorDev(rdev), enable)?;
+            Ok(0)
+        })
+    }
+
+    unsafe extern "C" fn enable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::enable(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
+
+    unsafe extern "C" fn disable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::disable(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
+
+    unsafe extern "C" fn is_enabled_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::is_enabled(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
+
+    unsafe extern "C" fn set_mode_callback(rdev: *mut bindings::regulator_dev, mode: core::ffi::c_uint) -> core::ffi::c_int {
+        from_result(|| { 
+            let mode = Mode::from_bindings(mode).unwrap_or(Mode::Invalid);
+            T::set_mode(&RegulatorDev(rdev), mode)?;
+            Ok(0)
+        })
+    }
+
+    unsafe extern "C" fn get_mode_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_uint {
+        T::get_mode(&RegulatorDev(rdev)) as _
+    }
+
+    unsafe extern "C" fn get_error_flags_callback(
         rdev: *mut bindings::regulator_dev,
         flags: *mut core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        0
+        match T::get_error_flags(&RegulatorDev(rdev)) {
+            Ok(v) => {
+                unsafe { *flags = v };
+                0
+            }
+            Err(e) => e.to_errno()
+        }
     }
-    pub enable_time:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub set_ramp_delay: ::core::option::Option<
-        unsafe extern "C" fn(
-            rdev: *mut bindings::regulator_dev,
-            ramp_delay: core::ffi::c_int,
-        ) -> core::ffi::c_int,
-    >,
-    pub set_voltage_time: ::core::option::Option<
-        unsafe extern "C" fn(
-            rdev: *mut bindings::regulator_dev,
-            old_uV: core::ffi::c_int,
-            new_uV: core::ffi::c_int,
-        ) -> core::ffi::c_int,
-    >,
-    pub set_voltage_time_sel: ::core::option::Option<
-        unsafe extern "C" fn(
-            rdev: *mut bindings::regulator_dev,
-            old_selector: core::ffi::c_uint,
-            new_selector: core::ffi::c_uint,
-        ) -> core::ffi::c_int,
-    >,
-    pub set_soft_start:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub get_status:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub get_optimum_mode: ::core::option::Option<
-        unsafe extern "C" fn(
-            rdev: *mut bindings::regulator_dev,
-            input_uV: core::ffi::c_int,
-            output_uV: core::ffi::c_int,
-            load_uA: core::ffi::c_int,
-        ) -> core::ffi::c_uint,
-    >,
-    pub set_load: ::core::option::Option<
-        unsafe extern "C" fn(
-            rdev: *mut bindings::regulator_dev,
-            load_uA: core::ffi::c_int,
-        ) -> core::ffi::c_int,
-    >,
-    pub set_bypass: ::core::option::Option<
-        unsafe extern "C" fn(dev: *mut bindings::regulator_dev, enable: bool_) -> core::ffi::c_int,
-    >,
-    pub get_bypass: ::core::option::Option<
-        unsafe extern "C" fn(dev: *mut bindings::regulator_dev, enable: *mut bool_) -> core::ffi::c_int,
-    >,
-    pub set_suspend_voltage: ::core::option::Option<
-        unsafe extern "C" fn(rdev: *mut bindings::regulator_dev, uV: core::ffi::c_int) -> core::ffi::c_int,
-    >,
-    pub set_suspend_enable:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub set_suspend_disable:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub set_suspend_mode: ::core::option::Option<
-        unsafe extern "C" fn(rdev: *mut bindings::regulator_dev, mode: core::ffi::c_uint) -> core::ffi::c_int,
-    >,
-    pub resume:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
-    pub set_pull_down:
-        ::core::option::Option<unsafe extern "C" fn(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int>,
 
-	list_voltage: None,
+    unsafe extern "C" fn enable_time_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::enable_time(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	/* get/set regulator voltage */
-	int (*set_voltage) (struct regulator_dev *, int min_uV, int max_uV,
-			    unsigned *selector);
-	map_voltage: None,
-	set_voltage_sel: None,
-	get_voltage: None,
-	get_voltage_sel: None,
+    unsafe extern "C" fn set_ramp_delay_callback(
+        rdev: *mut bindings::regulator_dev,
+        ramp_delay: core::ffi::c_int,
+    ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_ramp_delay(&RegulatorDev(rdev), ramp_delay)?;
+            Ok(0)
+        })
+    }
 
-	/* get/set regulator current  */
-	int (*set_current_limit) (struct regulator_dev *,
-				 int min_uA, int max_uA);
-	get_current_limit: None,
+    unsafe extern "C" fn set_voltage_time_callback(
+        rdev: *mut bindings::regulator_dev,
+        old_uv: core::ffi::c_int,
+        new_uv: core::ffi::c_int,
+    ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_voltage_time(&RegulatorDev(rdev), old_uv, new_uv)?;
+            Ok(0)
+        })
+    }
 
-	set_input_current_limit: None,
-	int (*set_over_current_protection)(struct regulator_dev *, int lim_uA,
-					   int severity, bool enable);
-	int (*set_over_voltage_protection)(struct regulator_dev *, int lim_uV,
-					   int severity, bool enable);
-	int (*set_under_voltage_protection)(struct regulator_dev *, int lim_uV,
-					    int severity, bool enable);
-	int (*set_thermal_protection)(struct regulator_dev *, int lim,
-				      int severity, bool enable);
-	set_active_discharge: None,
 
-	/* enable/disable regulator */
-	enable: None,
-	disable: None,
-	is_enabled: None,
+    unsafe extern "C" fn set_voltage_time_sel_callback(
+        rdev: *mut bindings::regulator_dev,
+        old_selector: core::ffi::c_uint,
+        new_selector: core::ffi::c_uint,
+    ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_voltage_time_sel(&RegulatorDev(rdev), old_selector, new_selector)?;
+            Ok(0)
+        })
+    }
 
-	/* get/set regulator operating mode (defined in consumer.h) */
-	set_mode: None,
-	unsigned get_mode: None,
 
-	/* retrieve current error flags on the regulator */
-	get_error_flags: None,
+    unsafe extern "C" fn set_soft_start_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_soft_start(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	/* Time taken to enable or set voltage on the regulator */
-	enable_time: None,
-	set_ramp_delay: None,
-	int (*set_voltage_time) (struct regulator_dev *, int old_uV,
-				 int new_uV);
-	int (*set_voltage_time_sel) (struct regulator_dev *,
-				     unsigned int old_selector,
-				     unsigned int new_selector);
+    unsafe extern "C" fn get_status_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::get_status(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	set_soft_start: None,
+    unsafe extern "C" fn get_optimum_mode_callback(
+        rdev: *mut bindings::regulator_dev,
+        input_uv: core::ffi::c_int,
+        output_uv: core::ffi::c_int,
+        load_ua: core::ffi::c_int,
+    ) -> core::ffi::c_uint {
+        T::get_optimum_mode(&RegulatorDev(rdev), input_uv, output_uv, load_ua) as _
+    }
 
-	/* report regulator status ... most other accessors report
-	 * control inputs, this reports results of combining inputs
-	 * from Linux (and other sources) with the actual load.
-	 * returns REGULATOR_STATUS_* or negative errno.
-	 */
-	get_status: None,
 
-	/* get most efficient regulator operating mode for load */
-	unsigned int (*get_optimum_mode) (struct regulator_dev *, int input_uV,
-					  int output_uV, int load_uA);
-	/* set the load on the regulator */
-	set_load: None,
+    unsafe extern "C" fn set_load_callback(
+        rdev: *mut bindings::regulator_dev,
+        load_ua: core::ffi::c_int,
+    ) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_load(&RegulatorDev(rdev), load_ua)?;
+            Ok(0)
+        })
+    }
 
-	/* control and report on bypass mode */
-	set_bypass: None,
-	get_bypass: None,
+    unsafe extern "C" fn set_bypass_callback(rdev: *mut bindings::regulator_dev, enable: bool) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_bypass(&RegulatorDev(rdev), enable)?;
+            Ok(0)
+        })
+    }
 
-	/* the operations below are for configuration of regulator state when
-	 * its parent PMIC enters a global STANDBY/HIBERNATE state */
+    unsafe extern "C" fn get_bypass_callback(rdev: *mut bindings::regulator_dev, enable: *mut bool) -> core::ffi::c_int {
+        match T::get_bypass(&RegulatorDev(rdev)) {
+            Ok(v) => {
+                unsafe { *enable = v };
+                0
+            }
+            Err(e) => e.to_errno()
+        }
+    }
 
-	/* set regulator suspend voltage */
-	set_suspend_voltage: None,
+    unsafe extern "C" fn set_suspend_voltage_callback(rdev: *mut bindings::regulator_dev, uv: core::ffi::c_int) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_suspend_voltage(&RegulatorDev(rdev), uv)?;
+            Ok(0)
+        })
+    }
+    
+    unsafe extern "C" fn set_suspend_enable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_suspend_enable(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	/* enable/disable regulator in suspend state */
-	set_suspend_enable: None,
-	set_suspend_disable: None,
+    unsafe extern "C" fn set_suspend_disable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_suspend_disable(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	/* set regulator suspend operating mode (defined in consumer.h) */
-	set_suspend_mode: None,
+    unsafe extern "C" fn set_suspend_mode_callback(rdev: *mut bindings::regulator_dev, mode: core::ffi::c_uint) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_suspend_mode(&RegulatorDev(rdev), mode)?;
+            Ok(0)
+        })
+    }
 
-	resume: None,
+    unsafe extern "C" fn resume_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::resume(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
 
-	set_pull_down: None,
-    */
+    unsafe extern "C" fn set_pull_down_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
+        from_result(|| {
+            T::set_pull_down(&RegulatorDev(rdev))?;
+            Ok(0)
+        })
+    }
+
     const VTABLE: bindings::regulator_ops = bindings::regulator_ops {
-        list_voltage: None,
-        set_voltage: None,
-        map_voltage: None,
-        set_voltage_sel: None,
-        get_voltage: None,
-        get_voltage_sel: None,
-        set_current_limit: None,
-        get_current_limit: None,
-        set_input_current_limit: None,
-        set_over_current_protection: None,
-        set_over_voltage_protection: None,
-        set_under_voltage_protection: None,
-        set_thermal_protection: None,
-        set_active_discharge: None,
-        enable: None,
-        disable: None,
-        is_enabled: None,
-        set_mode: None,
-        get_mode: None,
-        get_error_flags: None,
-        enable_time: None,
-        set_ramp_delay: None,
-        set_voltage_time: None,
-        set_voltage_time_sel: None,
-        set_soft_start: None,
-        get_status: None,
-        get_optimum_mode: None,
-        set_load: None,
-        set_bypass: None,
-        get_bypass: None,
-        set_suspend_voltage: None,
-        set_suspend_enable: None,
-        set_suspend_disable: None,
-        set_suspend_mode: None,
-        resume: None,
-        set_pull_down: None,
+        list_voltage: if T::HAS_LIST_VOLTAGE {
+            Some(Self::list_voltage_callback)
+        } else {
+            None
+        },
+        set_voltage: if T::HAS_SET_VOLTAGE {
+			Some(Self::set_voltage_callback)
+		} else {
+			None
+		},
+        map_voltage: if T::HAS_MAP_VOLTAGE {
+            Some(Self::map_voltage_callback)
+        } else {
+            None
+        },
+        set_voltage_sel: if T::HAS_SET_VOLTAGE_SEL {
+            Some(Self::set_voltage_sel_callback)
+        } else {
+            None
+        },
+        get_voltage: if T::HAS_GET_VOLTAGE {
+            Some(Self::get_voltage_callback)
+        } else {
+            None
+        },
+        get_voltage_sel: if T::HAS_GET_VOLTAGE_SEL {
+			Some(Self::get_voltage_sel_callback)
+		} else {
+			None
+		},
+        set_current_limit: if T::HAS_SET_CURRENT_LIMIT {
+			Some(Self::set_current_limit_callback)
+		} else {
+			None
+		},
+        get_current_limit: if T::HAS_GET_CURRENT_LIMIT {
+			Some(Self::get_current_limit_callback)
+		} else {
+			None
+		},
+        set_input_current_limit: if T::HAS_SET_INPUT_CURRENT_LIMIT {
+			Some(Self::set_input_current_limit_callback)
+		} else {
+			None
+		},
+        set_over_current_protection: if T::HAS_SET_OVER_CURRENT_PROTECTION {
+			Some(Self::set_over_current_protection_callback)
+		} else {
+			None
+		},
+        set_over_voltage_protection: if T::HAS_SET_OVER_VOLTAGE_PROTECTION {
+			Some(Self::set_over_voltage_protection_callback)
+		} else {
+			None
+		},
+        set_under_voltage_protection: if T::HAS_SET_UNDER_VOLTAGE_PROTECTION {
+			Some(Self::set_under_voltage_protection_callback)
+		} else {
+			None
+		},
+        set_thermal_protection: if T::HAS_SET_THERMAL_PROTECTION {
+			Some(Self::set_thermal_protection_callback)
+		} else {
+			None
+		},
+        set_active_discharge: if T::HAS_SET_ACTIVE_DISCHARGE {
+			Some(Self::set_active_discharge_callback)
+		} else {
+			None
+		},
+        enable: if T::HAS_ENABLE {
+			Some(Self::enable_callback)
+		} else {
+			None
+		},
+        disable: if T::HAS_DISABLE {
+			Some(Self::disable_callback)
+		} else {
+			None
+		},
+        is_enabled: if T::HAS_IS_ENABLED {
+			Some(Self::is_enabled_callback)
+		} else {
+			None
+		},
+        set_mode: if T::HAS_SET_MODE {
+			Some(Self::set_mode_callback)
+		} else {
+			None
+		},
+        get_mode: if T::HAS_GET_MODE {
+			Some(Self::get_mode_callback)
+		} else {
+			None
+		},
+        get_error_flags: if T::HAS_GET_ERROR_FLAGS {
+			Some(Self::get_error_flags_callback)
+		} else {
+			None
+		},
+        enable_time: if T::HAS_ENABLE_TIME {
+			Some(Self::enable_time_callback)
+		} else {
+			None
+		},
+        set_ramp_delay: if T::HAS_SET_RAMP_DELAY {
+			Some(Self::set_ramp_delay_callback)
+		} else {
+			None
+		},
+        set_voltage_time: if T::HAS_SET_VOLTAGE_TIME {
+			Some(Self::set_voltage_time_callback)
+		} else {
+			None
+		},
+        set_voltage_time_sel: if T::HAS_SET_VOLTAGE_TIME_SEL {
+			Some(Self::set_voltage_time_sel_callback)
+		} else {
+			None
+		},
+        set_soft_start: if T::HAS_SET_SOFT_START {
+			Some(Self::set_soft_start_callback)
+		} else {
+			None
+		},
+        get_status: if T::HAS_GET_STATUS {
+			Some(Self::get_status_callback)
+		} else {
+			None
+		},
+        get_optimum_mode: if T::HAS_GET_OPTIMUM_MODE {
+			Some(Self::get_optimum_mode_callback)
+		} else {
+			None
+		},
+        set_load: if T::HAS_SET_LOAD {
+			Some(Self::set_load_callback)
+		} else {
+			None
+		},
+        set_bypass: if T::HAS_SET_BYPASS {
+			Some(Self::set_bypass_callback)
+		} else {
+			None
+		},
+        get_bypass: if T::HAS_GET_BYPASS {
+			Some(Self::get_bypass_callback)
+		} else {
+			None
+		},
+        set_suspend_voltage: if T::HAS_SET_SUSPEND_VOLTAGE {
+			Some(Self::set_suspend_voltage_callback)
+		} else {
+			None
+		},
+        set_suspend_enable: if T::HAS_SET_SUSPEND_ENABLE {
+			Some(Self::set_suspend_enable_callback)
+		} else {
+			None
+		},
+        set_suspend_disable: if T::HAS_SET_SUSPEND_DISABLE {
+			Some(Self::set_suspend_disable_callback)
+		} else {
+			None
+		},
+        set_suspend_mode: if T::HAS_SET_SUSPEND_MODE {
+			Some(Self::set_suspend_mode_callback)
+		} else {
+			None
+		},
+        resume: if T::HAS_RESUME {
+			Some(Self::resume_callback)
+		} else {
+			None
+		},
+        set_pull_down: if T::HAS_SET_PULL_DOWN {
+			Some(Self::set_pull_down_callback)
+		} else {
+			None
+		},
     };
 
     pub(crate) const unsafe fn build() -> &'static bindings::regulator_ops {

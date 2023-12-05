@@ -40,6 +40,37 @@ impl platform::Driver for Driver {
 
 #[vtable]
 impl Operations for Driver {
+	fn enable(rdev: &RegulatorDev) -> Result {
+		rdev.enable_regmap()
+	}
+
+	fn disable(rdev: &RegulatorDev) -> Result {
+		rdev.disable_regmap()
+	}
+
+	fn is_enabled(rdev: &RegulatorDev) -> Result<bool> {
+		rdev.is_enabled_regmap()
+	}
+
+	fn set_active_discharge(rdev: &RegulatorDev, enable: bool) -> Result {
+		rdev.set_active_discharge_regmap(enable)
+	}
+
+	fn set_current_limit(rdev: &RegulatorDev, min_ua: i32, max_ua: i32) -> Result {
+		rdev.set_current_limit_regmap(min_ua, max_ua)
+	}
+
+	fn get_current_limit(rdev: &RegulatorDev) -> Result<i32> {
+        rdev.get_current_limit_regmap()
+	}
+
+    fn set_voltage_sel(rdev: &RegulatorDev, selector: u32) -> Result {
+		rdev.set_voltage_sel_regmap(selector)
+    }
+
+    fn get_voltage_sel(rdev: &RegulatorDev) -> Result<i32> {
+		rdev.get_voltage_sel_regmap()
+    }
 }
 
 const NCV6336_DESC: Desc = Desc::new::<Driver>(c_str!("ncv6336"), Type::Voltage)
