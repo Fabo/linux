@@ -138,104 +138,104 @@ pub trait Driver {
     /// Return one of the supported voltages, in microvolt; zero if the selector indicates a
     /// voltage that is unusable by the system; or negative errno. Selectors range from zero to one
     /// less than the number of voltages supported by the system.
-    fn list_voltage(_rdev: &Regulator, _selector: u32) -> Result<i32> {
+    fn list_voltage(_rdev: &mut Regulator, _selector: u32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regulator within the range specified. The driver should select the
     /// voltage closest to `min_uv`.
-    fn set_voltage(_rdev: &Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
+    fn set_voltage(_rdev: &mut Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regulator using the specified selector.
-    fn set_voltage_sel(_rdev: &Regulator, _selector: u32) -> Result {
+    fn set_voltage_sel(_rdev: &mut Regulator, _selector: u32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Convert a voltage into a selector.
-    fn map_voltage(_rdev: &Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
+    fn map_voltage(_rdev: &mut Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Get the currently configured voltage for the regulator; Returns
     /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
     /// set yet.
-    fn get_voltage(_rdev: &Regulator) -> Result<i32> {
+    fn get_voltage(_rdev: &mut Regulator) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Get the currently configured voltage selector for the regulator; Returns
     /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
     /// set yet.
-    fn get_voltage_sel(_rdev: &Regulator) -> Result<i32> {
+    fn get_voltage_sel(_rdev: &mut Regulator) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Configure a limit for a current-limited regulator.
     ///
     /// The driver should select the current closest to `max_ua`.
-    fn set_current_limit(_rdev: &Regulator, _min_ua: i32, _max_ua: i32) -> Result {
+    fn set_current_limit(_rdev: &mut Regulator, _min_ua: i32, _max_ua: i32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Get the configured limit for a current-limited regulator.
-    fn get_current_limit(_rdev: &Regulator) -> Result<i32> {
+    fn get_current_limit(_rdev: &mut Regulator) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Enable or disable the active discharge of the regulator.
-    fn set_active_discharge(_rdev: &Regulator, _enable: bool) -> Result {
+    fn set_active_discharge(_rdev: &mut Regulator, _enable: bool) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Configure the regulator as enabled.
-    fn enable(_rdev: &Regulator) -> Result {
+    fn enable(_rdev: &mut Regulator) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Configure the regulator as disabled.
-    fn disable(_rdev: &Regulator) -> Result {
+    fn disable(_rdev: &mut Regulator) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Returns enablement state of the regulator.
-    fn is_enabled(_rdev: &Regulator) -> Result<bool> {
+    fn is_enabled(_rdev: &mut Regulator) -> Result<bool> {
         Err(ENOTSUPP)
     }
 
     /// Set the configured operating [`Mode`] for the regulator.
-    fn set_mode(_rdev: &Regulator, _mode: Mode) -> Result {
+    fn set_mode(_rdev: &mut Regulator, _mode: Mode) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Get the configured operating [`Mode`] for the regulator
-    fn get_mode(_rdev: &Regulator) -> Mode {
+    fn get_mode(_rdev: &mut Regulator) -> Mode {
         Mode::Invalid
     }
 
     /// Report the regulator [`Status`].
-    fn get_status(_rdev: &Regulator) -> Result<Status> {
+    fn get_status(_rdev: &mut Regulator) -> Result<Status> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regaultor when the system is suspended.
-    fn set_suspend_voltage(_rdev: &Regulator, _uv: i32) -> Result {
+    fn set_suspend_voltage(_rdev: &mut Regulator, _uv: i32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Mark the regulator as enabled when the system is suspended.
-    fn set_suspend_enable(_rdev: &Regulator) -> Result {
+    fn set_suspend_enable(_rdev: &mut Regulator) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Mark the regulator as disabled when the system is suspended.
-    fn set_suspend_disable(_rdev: &Regulator) -> Result {
+    fn set_suspend_disable(_rdev: &mut Regulator) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Set the operating mode for the regulator when the system is suspended.
-    fn set_suspend_mode(_rdev: &Regulator, _mode: Mode) -> Result {
+    fn set_suspend_mode(_rdev: &mut Regulator, _mode: Mode) -> Result {
         Err(ENOTSUPP)
     }
 }
@@ -614,11 +614,11 @@ impl<T: Driver> Adapter<T> {
         rdev: *mut bindings::regulator_dev,
         selector: core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| T::list_voltage(&rdev, selector))
+        from_result(|| T::list_voltage(&mut rdev, selector))
     }
 
     unsafe extern "C" fn set_voltage_callback(
@@ -627,11 +627,11 @@ impl<T: Driver> Adapter<T> {
         max_uv: core::ffi::c_int,
         selector: *mut core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        match T::set_voltage(&rdev, min_uv, max_uv) {
+        match T::set_voltage(&mut rdev, min_uv, max_uv) {
             Ok(v) => {
                 unsafe { *selector = v as _ };
                 0
@@ -645,23 +645,23 @@ impl<T: Driver> Adapter<T> {
         min_uv: core::ffi::c_int,
         max_uv: core::ffi::c_int,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| T::map_voltage(&rdev, min_uv, max_uv))
+        from_result(|| T::map_voltage(&mut rdev, min_uv, max_uv))
     }
 
     unsafe extern "C" fn set_voltage_sel_callback(
         rdev: *mut bindings::regulator_dev,
         selector: core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_voltage_sel(&rdev, selector)?;
+            T::set_voltage_sel(&mut rdev, selector)?;
             Ok(0)
         })
     }
@@ -669,21 +669,21 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn get_voltage_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| T::get_voltage(&rdev))
+        from_result(|| T::get_voltage(&mut rdev))
     }
 
     unsafe extern "C" fn get_voltage_sel_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| T::get_voltage_sel(&rdev))
+        from_result(|| T::get_voltage_sel(&mut rdev))
     }
 
     unsafe extern "C" fn set_current_limit_callback(
@@ -691,12 +691,12 @@ impl<T: Driver> Adapter<T> {
         min_ua: core::ffi::c_int,
         max_ua: core::ffi::c_int,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_current_limit(&rdev, min_ua, max_ua)?;
+            T::set_current_limit(&mut rdev, min_ua, max_ua)?;
             Ok(0)
         })
     }
@@ -704,45 +704,45 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn get_current_limit_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| T::get_current_limit(&rdev))
+        from_result(|| T::get_current_limit(&mut rdev))
     }
 
     unsafe extern "C" fn set_active_discharge_callback(
         rdev: *mut bindings::regulator_dev,
         enable: bool,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_active_discharge(&rdev, enable)?;
+            T::set_active_discharge(&mut rdev, enable)?;
             Ok(0)
         })
     }
 
     unsafe extern "C" fn enable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::enable(&rdev)?;
+            T::enable(&mut rdev)?;
             Ok(0)
         })
     }
 
     unsafe extern "C" fn disable_callback(rdev: *mut bindings::regulator_dev) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::disable(&rdev)?;
+            T::disable(&mut rdev)?;
             Ok(0)
         })
     }
@@ -750,12 +750,12 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn is_enabled_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::is_enabled(&rdev)?;
+            T::is_enabled(&mut rdev)?;
             Ok(0)
         })
     }
@@ -764,13 +764,13 @@ impl<T: Driver> Adapter<T> {
         rdev: *mut bindings::regulator_dev,
         mode: core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
             let mode = Mode::try_from(mode).unwrap_or(Mode::Invalid);
-            T::set_mode(&rdev, mode)?;
+            T::set_mode(&mut rdev, mode)?;
             Ok(0)
         })
     }
@@ -778,33 +778,33 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn get_mode_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_uint {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        T::get_mode(&rdev) as _
+        T::get_mode(&mut rdev) as _
     }
 
     unsafe extern "C" fn get_status_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
-        from_result(|| Ok(T::get_status(&rdev)? as _))
+        from_result(|| Ok(T::get_status(&mut rdev)? as _))
     }
 
     unsafe extern "C" fn set_suspend_voltage_callback(
         rdev: *mut bindings::regulator_dev,
         uv: core::ffi::c_int,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_suspend_voltage(&rdev, uv)?;
+            T::set_suspend_voltage(&mut rdev, uv)?;
             Ok(0)
         })
     }
@@ -812,12 +812,12 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn set_suspend_enable_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_suspend_enable(&rdev)?;
+            T::set_suspend_enable(&mut rdev)?;
             Ok(0)
         })
     }
@@ -825,12 +825,12 @@ impl<T: Driver> Adapter<T> {
     unsafe extern "C" fn set_suspend_disable_callback(
         rdev: *mut bindings::regulator_dev,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
-            T::set_suspend_disable(&rdev)?;
+            T::set_suspend_disable(&mut rdev)?;
             Ok(0)
         })
     }
@@ -839,13 +839,13 @@ impl<T: Driver> Adapter<T> {
         rdev: *mut bindings::regulator_dev,
         mode: core::ffi::c_uint,
     ) -> core::ffi::c_int {
-        let rdev = ManuallyDrop::new(Regulator {
+        let mut rdev = ManuallyDrop::new(Regulator {
             rdev,
             _regmap: None,
         });
         from_result(|| {
             let mode = Mode::try_from(mode).unwrap_or(Mode::Invalid);
-            T::set_suspend_mode(&rdev, mode)?;
+            T::set_suspend_mode(&mut rdev, mode)?;
             Ok(0)
         })
     }
