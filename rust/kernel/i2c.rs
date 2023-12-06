@@ -6,7 +6,7 @@
 
 use crate::{
     bindings,
-    device::RawDevice,
+    device::{Device, RawDevice},
     driver::{self, RawDeviceId},
     error::{from_result, to_result, Result},
     of,
@@ -279,6 +279,12 @@ impl Client {
 
     pub unsafe fn raw_client(&self) -> *mut bindings::i2c_client {
         self.ptr
+    }
+
+    pub fn device(&self) -> Device {
+        Device {
+            ptr: self.raw_device(),
+        }
     }
 }
 
