@@ -112,6 +112,10 @@ impl ThisModule {
     pub const unsafe fn from_ptr(ptr: *mut bindings::module) -> ThisModule {
         ThisModule(ptr)
     }
+
+    pub const fn to_ptr(&self) -> *mut bindings::module {
+        self.0
+    }
 }
 
 #[cfg(not(any(testlib, test)))]
