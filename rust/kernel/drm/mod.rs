@@ -2,6 +2,7 @@
 
 //! DRM subsystem abstractions.
 
+pub mod connector;
 pub mod device;
 pub mod drv;
 pub mod ioctl;
