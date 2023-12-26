@@ -6,5 +6,6 @@ pub mod connector;
 pub mod device;
 pub mod drv;
 pub mod ioctl;
+pub mod mipi_dsi;
 pub mod mode;
 pub mod panel;
