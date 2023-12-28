@@ -20,6 +20,7 @@
 #![feature(inline_const)]
 #![feature(lint_reasons)]
 #![feature(unsize)]
+#![allow(missing_docs)]
 #![allow(stable_features)]
 // Stable in Rust 1.83
 #![feature(const_mut_refs)]
