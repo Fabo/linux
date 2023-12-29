@@ -171,7 +171,7 @@
 		iovcc-supply = <&vreg_lcd_iovcc_reg>;
 		avdd-supply = <&vreg_lcd_avdd_reg>;
 		avee-supply = <&vreg_lcd_avee_reg>;
-		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
+		//reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
 		backlight = <&bl>;
 
 		ports {
