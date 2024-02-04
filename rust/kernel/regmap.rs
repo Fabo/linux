@@ -12,19 +12,28 @@ use crate::{
 };
 use core::{marker::PhantomData, mem::MaybeUninit};
 
+/// Register Endianness
 #[repr(u32)]
 pub enum Endian {
     Default = bindings::regmap_endian_REGMAP_ENDIAN_DEFAULT,
+    /// Big Endian
     Big = bindings::regmap_endian_REGMAP_ENDIAN_BIG,
+    /// Little Endian
     Little = bindings::regmap_endian_REGMAP_ENDIAN_LITTLE,
+    /// System's native Endian
     Native = bindings::regmap_endian_REGMAP_ENDIAN_NATIVE,
 }
 
+/// Type of caching
 #[repr(u32)]
 pub enum CacheType {
+    /// Don't cache anything
     None = bindings::regcache_type_REGCACHE_NONE,
+    /// Use RbTree caching
     RbTree = bindings::regcache_type_REGCACHE_RBTREE,
+    /// Use Flat caching
     Flat = bindings::regcache_type_REGCACHE_FLAT,
+    /// Use Maple caching
     Maple = bindings::regcache_type_REGCACHE_MAPLE,
 }
 
@@ -88,6 +97,12 @@ impl<const N: usize> Fields<N> {
 
 unsafe impl<const N: usize> Send for Fields<N> {}
 
+/// Helper macro for [`Config`] to create methods to set a fields from [`regmap_config`]
+///
+/// The following code will create a method named `with_max_register`:
+/// ```
+/// config_with!(max_register: u32);
+/// ```
 macro_rules! config_with {
     ($name:ident: $type:ty) => {
         config_with!($name: $type, $name);

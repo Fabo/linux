@@ -27,6 +27,9 @@ pub enum Mode {
 }
 
 impl Mode {
+    /// Convert a mode represented as an unsigned integer into its Rust enum equivalent
+    ///
+    /// If the integer does not match any of the [`Mode`], then [`EINVAL`] is returned
     fn from_bindings(mode: core::ffi::c_uint) -> Result<Self> {
         match mode {
             bindings::REGULATOR_MODE_FAST => Ok(Self::Fast),

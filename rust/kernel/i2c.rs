@@ -282,6 +282,7 @@ impl Client {
         self.ptr
     }
 
+    /// Returns the I2C client [`Device`] structure
     pub fn device(&self) -> Device {
         Device {
             ptr: self.raw_device(),
@@ -289,7 +290,6 @@ impl Client {
     }
 }
 
-// SAFETY: The device returned by `raw_device` is the raw i2c device.
 unsafe impl RawDevice for Client {
     fn raw_device(&self) -> *mut bindings::device {
         // SAFETY: By the type invariants, we know that `self.ptr` is non-null and valid.
