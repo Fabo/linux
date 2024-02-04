@@ -13,8 +13,9 @@ use core::{
     mem::{ManuallyDrop, MaybeUninit},
 };
 
+/// Linear Range Descriptor
 pub type LinearRange = bindings::linear_range;
-///
+
 /// [`Regulator`] status
 #[derive(Copy, Clone)]
 #[repr(u32)]
@@ -69,6 +70,7 @@ impl From<Mode> for Status {
 
 #[vtable]
 pub trait Operations {
+    /// User data that will be passed to all operations
     type Data: ForeignOwnable + Send + Sync = ();
 
     fn list_voltage(
@@ -350,8 +352,10 @@ pub trait Operations {
     }
 }
 
+/// Regulator descriptor
 pub struct Desc(bindings::regulator_desc);
 impl Desc {
+    /// Create a new regulator descriptor
     pub const fn new<T: Operations>(name: &'static CStr, reg_type: Type) -> Self {
         let desc = MaybeUninit::<bindings::regulator_desc>::zeroed();
         let mut desc = unsafe { desc.assume_init() };
@@ -361,11 +365,7 @@ impl Desc {
         Self(desc)
     }
 
-    pub const fn with_name(mut self, name: &'static CStr) -> Self {
-        self.0.name = name.as_char_ptr();
-        self
-    }
-
+    /// Setup the register address, mask, and {en,dis}able values
     pub const fn with_enable(mut self, reg: u32, mask: u32, en_val: u32, dis_val: u32) -> Self {
         self.0.enable_reg = reg;
         self.0.enable_mask = mask;
@@ -374,6 +374,9 @@ impl Desc {
         self
     }
 
+    /// Setup the register address, mask, and {en,dis}able values. {En,Dis}able values are
+    /// inverted, i.e. `dis_val` will be use to enable the regulator while `en_val` will be used
+    /// to disable the regulator.
     pub const fn with_inverted_enable(
         mut self,
         reg: u32,
@@ -385,6 +388,7 @@ impl Desc {
         self.with_enable(reg, mask, en_val, dis_val)
     }
 
+    /// Setup the active discharge regiter address, mask, on/off values.
     pub const fn with_active_discharge(mut self, reg: u32, mask: u32, on: u32, off: u32) -> Self {
         self.0.active_discharge_on = on;
         self.0.active_discharge_off = off;
@@ -393,6 +397,7 @@ impl Desc {
         self
     }
 
+    /// Setup the current selection regiater address, mask, and current table
     pub const fn with_csel(mut self, reg: u32, mask: u32, table: &'static [u32]) -> Self {
         self.0.csel_reg = reg;
         self.0.csel_mask = mask;
@@ -431,6 +436,7 @@ impl Desc {
         self
     }
 
+    /// Set the regulator owner
     pub const fn with_owner(mut self, owner: &'static ThisModule) -> Self {
         self.0.owner = owner.to_ptr();
         self
@@ -438,12 +444,14 @@ impl Desc {
 }
 unsafe impl Sync for Desc {}
 
+/// Regulator Config
 pub struct Config<T: ForeignOwnable + Send + Sync = ()> {
     cfg: bindings::regulator_config,
     data: Option<T>,
 }
 
 impl<T: ForeignOwnable + Send + Sync> Config<T> {
+    /// Create a regulator config
     pub fn new(dev: &Device) -> Self {
         Self {
             cfg: bindings::regulator_config {
@@ -454,11 +462,13 @@ impl<T: ForeignOwnable + Send + Sync> Config<T> {
         }
     }
 
+    /// Assign a regmap device to the config
     pub fn with_regmap(mut self, regmap: &Regmap) -> Self {
         self.cfg.regmap = regmap.to_raw();
         self
     }
 
+    /// Assign driver private data to the Config
     pub fn with_drvdata(mut self, data: T) -> Self {
         self.data = Some(data);
         self
@@ -473,8 +483,12 @@ impl<T: ForeignOwnable + Send + Sync> Config<T> {
     }
 }
 
+/// Regulator Device
+///
+/// Wraps the C structure `regulator_dev`.
 pub struct RegulatorDev(*mut bindings::regulator_dev);
 impl RegulatorDev {
+    /// register a regulator
     pub fn register<T: ForeignOwnable + Send + Sync>(
         dev: &Device,
         desc: &'static Desc,
@@ -484,80 +498,6 @@ impl RegulatorDev {
             bindings::regulator_register(dev.raw_device(), &desc.0, &cfg.into_raw())
         })?;
         Ok(Self(rdev))
-    }
-
-    pub fn get_voltage_sel_pickable_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_get_voltage_sel_pickable_regmap(self.0) })
-    }
-
-    pub fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result {
-        to_result(unsafe { bindings::regulator_set_voltage_sel_pickable_regmap(self.0, sel) })
-    }
-
-    pub fn get_voltage_sel_regmap(&self) -> Result<i32> {
-        let ret = unsafe { bindings::regulator_get_voltage_sel_regmap(self.0) };
-        if ret < 0 {
-            return Err(Error::from_errno(ret));
-        }
-        Ok(ret)
-    }
-
-    pub fn set_voltage_sel_regmap(&self, sel: u32) -> Result {
-        to_result(unsafe { bindings::regulator_set_voltage_sel_regmap(self.0, sel) })
-    }
-
-    pub fn is_enabled_regmap(&self) -> Result<bool> {
-        let ret = unsafe { bindings::regulator_is_enabled_regmap(self.0) };
-        if ret < 0 {
-            return Err(Error::from_errno(ret));
-        }
-        Ok(ret > 0)
-    }
-
-    pub fn enable_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_enable_regmap(self.0) })
-    }
-
-    pub fn disable_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_disable_regmap(self.0) })
-    }
-
-    pub fn set_bypass_regmap(&self, enable: bool) -> Result {
-        to_result(unsafe { bindings::regulator_set_bypass_regmap(self.0, enable) })
-    }
-
-    pub fn get_bypass_regmap(&self) -> Result<bool> {
-        let mut enable: bool = false;
-        let ret = to_result(unsafe { bindings::regulator_get_bypass_regmap(self.0, &mut enable) });
-        ret.map(|_| enable)
-    }
-
-    pub fn set_soft_start_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_set_soft_start_regmap(self.0) })
-    }
-
-    pub fn set_pull_down_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_set_pull_down_regmap(self.0) })
-    }
-
-    pub fn set_active_discharge_regmap(&self, enable: bool) -> Result {
-        to_result(unsafe { bindings::regulator_set_active_discharge_regmap(self.0, enable) })
-    }
-
-    pub fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result {
-        to_result(unsafe { bindings::regulator_set_current_limit_regmap(self.0, min_ua, max_ua) })
-    }
-
-    pub fn get_current_limit_regmap(&self) -> Result<i32> {
-        let ret = unsafe { bindings::regulator_get_current_limit_regmap(self.0) };
-        if ret < 0 {
-            return Err(Error::from_errno(ret));
-        }
-        Ok(ret)
-    }
-
-    pub fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result {
-        to_result(unsafe { bindings::regulator_set_ramp_delay_regmap(self.0, ramp_delay) })
     }
 
     pub fn list_voltage_linear_range(&self, selector: u32) -> Result<i32> {
@@ -576,12 +516,144 @@ impl RegulatorDev {
         Ok(ret)
     }
 
+    /// Get regulator's name
     pub fn get_name(&self) -> &'static CStr {
         unsafe { CStr::from_char_ptr(bindings::rdev_get_name(self.0)) }
     }
 
+    /// Get regulator's ID
     pub fn get_id(&self) -> i32 {
         unsafe { bindings::rdev_get_id(self.0) }
+    }
+}
+
+///
+pub trait RegmapHelpers: crate::private::Sealed {
+    /// Helper to implement [`Operations::get_voltage_set_pickable`] using regmap
+    fn get_voltage_sel_pickable_regmap(&self) -> Result;
+    /// Helper to implement [`Operations::set_voltage_set_pickable`] using regmap
+    fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result;
+    /// Helper to implement [`Operations::get_voltage_set`] using regmap
+    fn get_voltage_sel_regmap(&self) -> Result<i32>;
+    /// Helper to implement [`Operations::set_voltage_set`] using regmap
+    fn set_voltage_sel_regmap(&self, sel: u32) -> Result;
+
+    /// Helper to implement [`Operations::is_enabled`] using regmap.
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn is_enabled_regmap(&self) -> Result<bool>;
+
+    /// Helper to implement [`Operations::enable`] using regmap.
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn enable_regmap(&self) -> Result;
+
+    /// Helper to implement [`Operations::disable`] using regmap.
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn disable_regmap(&self) -> Result;
+    /// Helper to implement [`Operations::set_bypass`] using regmap
+    fn set_bypass_regmap(&self, enable: bool) -> Result;
+    /// Helper to implement [`Operations::get_bypass`] using regmap
+    fn get_bypass_regmap(&self) -> Result<bool>;
+
+    /// Helper to implement [`Operations::set_soft_start`] using regmap
+    fn set_soft_start_regmap(&self) -> Result;
+    /// Helper to implement [`Operations::set_pull_down`] using regmap
+    fn set_pull_down_regmap(&self) -> Result;
+
+    /// Helper to implement [`Operations::set_active_discharge`] using regmap
+    ///
+    /// [`Desc::with_active_discharge`] must have been called to setup the fields required
+    /// by regmap.
+    fn set_active_discharge_regmap(&self, enable: bool) -> Result;
+    /// Helper to implement [`Operations::set_current_limit`] using regmap
+    fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result;
+    /// Helper to implement [`Operations::get_current_limit`] using regmap
+    fn get_current_limit_regmap(&self) -> Result<i32>;
+
+    /// Helper to implement [`Operations::set_ramp_delay`] using regmap
+    fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result;
+}
+
+impl crate::private::Sealed for RegulatorDev {}
+
+impl RegmapHelpers for RegulatorDev {
+    fn get_voltage_sel_pickable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_get_voltage_sel_pickable_regmap(self.0) })
+    }
+
+    fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result {
+        to_result(unsafe { bindings::regulator_set_voltage_sel_pickable_regmap(self.0, sel) })
+    }
+
+    fn get_voltage_sel_regmap(&self) -> Result<i32> {
+        let ret = unsafe { bindings::regulator_get_voltage_sel_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret)
+    }
+
+    fn set_voltage_sel_regmap(&self, sel: u32) -> Result {
+        to_result(unsafe { bindings::regulator_set_voltage_sel_regmap(self.0, sel) })
+    }
+
+    fn is_enabled_regmap(&self) -> Result<bool> {
+        let ret = unsafe { bindings::regulator_is_enabled_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret > 0)
+    }
+
+    fn enable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_enable_regmap(self.0) })
+    }
+
+    fn disable_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_disable_regmap(self.0) })
+    }
+
+    fn set_bypass_regmap(&self, enable: bool) -> Result {
+        to_result(unsafe { bindings::regulator_set_bypass_regmap(self.0, enable) })
+    }
+
+    fn get_bypass_regmap(&self) -> Result<bool> {
+        let mut enable: bool = false;
+        let ret = to_result(unsafe { bindings::regulator_get_bypass_regmap(self.0, &mut enable) });
+        ret.map(|_| enable)
+    }
+
+    fn set_soft_start_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_set_soft_start_regmap(self.0) })
+    }
+
+    fn set_pull_down_regmap(&self) -> Result {
+        to_result(unsafe { bindings::regulator_set_pull_down_regmap(self.0) })
+    }
+
+    fn set_active_discharge_regmap(&self, enable: bool) -> Result {
+        to_result(unsafe { bindings::regulator_set_active_discharge_regmap(self.0, enable) })
+    }
+
+    fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result {
+        to_result(unsafe { bindings::regulator_set_current_limit_regmap(self.0, min_ua, max_ua) })
+    }
+
+    fn get_current_limit_regmap(&self) -> Result<i32> {
+        let ret = unsafe { bindings::regulator_get_current_limit_regmap(self.0) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret)
+    }
+
+    fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result {
+        to_result(unsafe { bindings::regulator_set_ramp_delay_regmap(self.0, ramp_delay) })
     }
 }
 

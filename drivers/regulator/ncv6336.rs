@@ -9,7 +9,7 @@ use kernel::{
     prelude::*,
     regmap,
     regulator::{
-        driver::{Config, Desc, Operations, RegulatorDev, Status, Type},
+        driver::{Config, Desc, Operations, RegmapHelpers, RegulatorDev, Status, Type},
         Mode,
     },
     sync::{Arc, ArcBorrow},
@@ -132,7 +132,7 @@ impl i2c::Driver for Driver {
         let config = regmap::Config::<register::AccessOps>::new(8, 8)
             .with_max_register(0x16)
             .with_cache_type(regmap::CacheType::RbTree);
-        let mut regmap = regmap::Regmap::init_i2c(&client, &config);
+        let mut regmap = regmap::Regmap::init_i2c(client, &config);
 
         let mut registrations = Registrations {
             fields: regmap.alloc_fields(&REGS)?,

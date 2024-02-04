@@ -156,7 +156,7 @@ impl<T: Driver> Adapter<T> {
         };
 
         // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
-        unsafe { (&*ptr).as_ref() }
+        unsafe { (*ptr).as_ref() }
     }
 
     fn get_of_id_info(client: &Client) -> Option<&'static T::IdInfo> {
@@ -185,7 +185,7 @@ impl<T: Driver> Adapter<T> {
         };
 
         // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
-        unsafe { (&*ptr).as_ref() }
+        unsafe { (*ptr).as_ref() }
     }
 
     fn get_id_info(client: &Client) -> Option<&'static T::IdInfo> {
@@ -277,7 +277,8 @@ impl Client {
         Self { ptr }
     }
 
-    pub unsafe fn raw_client(&self) -> *mut bindings::i2c_client {
+    /// Returns the raw I2C client structure
+    pub fn raw_client(&self) -> *mut bindings::i2c_client {
         self.ptr
     }
 

@@ -81,7 +81,7 @@ pub struct Fields<const N: usize> {
     _reg_fields: &'static RegFields<N>,
 }
 impl<const N: usize> Fields<N> {
-    pub unsafe fn index(&mut self, index: usize) -> *mut bindings::regmap_field {
+    pub fn index(&mut self, index: usize) -> *mut bindings::regmap_field {
         self.rm_fields[index]
     }
 }
