@@ -388,6 +388,18 @@ pub fn paste(input: TokenStream) -> TokenStream {
     tokens.into_iter().collect()
 }
 
+/// Repeat a fragment of code and provide a numerical index for the current repetition
+///
+/// ```
+/// seq!(i in 0..10) {
+///     func$i() {
+///     }
+/// }
+///
+/// seq!(i in 8..=15) {
+///     bit$i() {
+///     }
+/// }
 #[proc_macro]
 pub fn seq(input: TokenStream) -> TokenStream {
     seq::expand(input)
