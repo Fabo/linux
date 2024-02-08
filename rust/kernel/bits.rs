@@ -1,5 +1,8 @@
 //use crate::static_assert;
 
+/// Generate a mask where all bits >= `h` and <= `l` are set
+///
+/// This is a re-implementation in rust of `GENMASK`
 pub const fn genmask(h: u32, l: u32) -> u32 {
     //static_assert!(h >= l);
     //static_assert!(h < 32);

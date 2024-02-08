@@ -2,7 +2,7 @@
 
 //! SoC Regulator consumer abstractions.
 //!
-//! C header: [`include/linux/regulator/consumer.h`](../../../../../include/linux/regulator/consumer.h)
+//! C header: [`include/linux/regulator/consumer.h`](srctree/include/linux/regulator/consumer.h)
 //!
 //! Reference: <https://docs.kernel.org/driver-api/regulator.html>
 

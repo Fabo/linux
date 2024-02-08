@@ -10,7 +10,7 @@ use crate::{
     error::{code::*, Result},
 };
 
-/// [`Regulator`] operating modes
+/// [`consumer::Regulator`] and [`driver::RegulatorDev`] operating modes
 #[derive(Copy, Clone)]
 #[repr(u32)]
 pub enum Mode {

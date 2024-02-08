@@ -327,7 +327,7 @@ macro_rules! dev_printk {
 /// Equivalent to the kernel's `dev_emerg` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -352,7 +352,7 @@ macro_rules! dev_emerg {
 /// Equivalent to the kernel's `dev_alert` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -377,7 +377,7 @@ macro_rules! dev_alert {
 /// Equivalent to the kernel's `dev_crit` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -402,7 +402,7 @@ macro_rules! dev_crit {
 /// Equivalent to the kernel's `dev_err` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -427,7 +427,7 @@ macro_rules! dev_err {
 /// Equivalent to the kernel's `dev_warn` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -452,7 +452,7 @@ macro_rules! dev_warn {
 /// Equivalent to the kernel's `dev_notice` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -477,7 +477,7 @@ macro_rules! dev_notice {
 /// Equivalent to the kernel's `dev_info` macro.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///
@@ -502,7 +502,7 @@ macro_rules! dev_info {
 /// Equivalent to the kernel's `dev_dbg` macro, except that it doesn't support dynamic debug yet.
 ///
 /// Mimics the interface of [`std::print!`]. More information about the syntax is available from
-/// [`core::fmt`] and [`alloc::format!`].
+/// [`core::fmt`].
 ///
 /// [`std::print!`]: https://doc.rust-lang.org/std/macro.print.html
 ///

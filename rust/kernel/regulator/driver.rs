@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
+
+//! SoC Regulator Driver Interface
+//!
+//! C header: [`include/linux/regulator/driver.h`](srctree/include/linux/regulator/driver.h)
+
 use crate::{
     device::{Device, RawDevice},
     error::{code::*, from_err_ptr, from_result, to_result, Error, Result},
@@ -11,12 +17,13 @@ use crate::{
 use core::{
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
+    time::Duration,
 };
 
 /// Linear Range Descriptor
 pub type LinearRange = bindings::linear_range;
 
-/// [`Regulator`] status
+/// [`RegulatorDev`] status
 #[derive(Copy, Clone)]
 #[repr(u32)]
 pub enum Status {
@@ -73,6 +80,9 @@ pub trait Operations {
     /// User data that will be passed to all operations
     type Data: ForeignOwnable + Send + Sync = ();
 
+    /// Return one of the supported voltages, in microvolt; zero if the selector indicates a
+    /// voltage that is unusable by the system; or negative errno. Selectors range from zero to one
+    /// less than the number of voltages supported by the system.
     fn list_voltage(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -81,6 +91,8 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the voltage for the regulator within the range specified. The driver should select the
+    /// voltage closest to `min_uv`.
     fn set_voltage(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -90,6 +102,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Convert a voltage into a selector
     fn map_voltage(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -99,6 +112,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the voltage for the regulator using the specified selector.
     fn set_voltage_sel(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -107,6 +121,9 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the currently configured voltage for the regulator; Returns
+    /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
+    /// set yet.
     fn get_voltage(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -114,6 +131,9 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the currently configured voltage selector for the regulator; Returns
+    /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
+    /// set yet.
     fn get_voltage_sel(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -121,6 +141,9 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Configure a limit for a current-limited regulator.
+    ///
+    /// The driver should select the current closest to `max_ua`.
     fn set_current_limit(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -130,6 +153,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the configured limit for a current-limited regulator.
     fn get_current_limit(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -137,6 +161,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Configure an input current limit.
     fn set_input_current_limit(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -145,6 +170,10 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set over current protection
+    ///
+    /// See C documentation for details:
+    /// <https://docs.kernel.org/driver-api/regulator.html#c.regulator_ops>
     fn set_over_current_protection(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -155,6 +184,10 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set over voltage protection
+    ///
+    /// See C documentation for details:
+    /// <https://docs.kernel.org/driver-api/regulator.html#c.regulator_ops>
     fn set_over_voltage_protection(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -165,6 +198,10 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set under voltage protection
+    ///
+    /// See C documentation for details:
+    /// <https://docs.kernel.org/driver-api/regulator.html#c.regulator_ops>
     fn set_under_voltage_protection(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -175,6 +212,10 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set thermal protection
+    ///
+    /// See C documentation for details:
+    /// <https://docs.kernel.org/driver-api/regulator.html#c.regulator_ops>
     fn set_thermal_protection(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -185,6 +226,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Enable or disable the active discharge of the regulator.
     fn set_active_discharge(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -193,10 +235,12 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Configure the regulator as enabled.
     fn enable(_data: <Self::Data as ForeignOwnable>::Borrowed<'_>, _rdev: &RegulatorDev) -> Result {
         Err(ENOTSUPP)
     }
 
+    /// Configure the regulator as disabled.
     fn disable(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -204,6 +248,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Returns enablement state of the regulator.
     fn is_enabled(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -211,6 +256,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the configured operating [`Mode`] for the regulator.
     fn set_mode(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -219,10 +265,12 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the configured operating [`Mode`] for the regulator
     fn get_mode(_data: <Self::Data as ForeignOwnable>::Borrowed<'_>, _rdev: &RegulatorDev) -> Mode {
         Mode::Invalid
     }
 
+    /// Get the current error(s) of the regulator.
     fn get_error_flags(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -230,13 +278,18 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Time taken for the regulator voltage output voltage to stabilise after being enabled.
+    ///
+    /// Minimum accuracy: 1 microsecond.
     fn enable_time(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
-    ) -> Result {
+    ) -> Result<Duration> {
         Err(ENOTSUPP)
     }
 
+    /// Set the ramp delay for the regulator. The driver should select ramp delay equal to or less
+    /// than(closest) ramp_delay.
     fn set_ramp_delay(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -245,24 +298,35 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Time taken for the regulator voltage output voltage to stabilise after being set to a new
+    /// value. The function takes the `from` and `to` voltage as input, it should return the worst
+    /// case.
+    ///
+    /// The minimum accuracy is 1 microsecond
     fn set_voltage_time(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
         _old_uv: i32,
         _new_uv: i32,
-    ) -> Result {
+    ) -> Result<Duration> {
         Err(ENOTSUPP)
     }
 
+    /// Time taken for the regulator voltage output voltage to stabilise after being set to a new
+    /// value. The function takes the `from` and `to` voltage selector as input, it should return
+    /// the worst case.
+    ///
+    /// The minimum accuracy is 1 microsecond
     fn set_voltage_time_sel(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
         _old_selector: u32,
         _new_selector: u32,
-    ) -> Result {
+    ) -> Result<Duration> {
         Err(ENOTSUPP)
     }
 
+    /// Enable soft start for the regulator.
     fn set_soft_start(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -270,6 +334,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Report the regulator [`Status`].
     fn get_status(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -277,6 +342,8 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the most efficient operating mode for the regulator when running with the specified
+    /// parameters.
     fn get_optimum_mode(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -287,6 +354,7 @@ pub trait Operations {
         Mode::Invalid
     }
 
+    /// Set the load for the regulator.
     fn set_load(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -295,6 +363,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the regulator in bypass mode.
     fn set_bypass(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -303,6 +372,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Get the regulator bypass mode state.
     fn get_bypass(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -310,6 +380,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the voltage for the regaultor when the system is suspended.
     fn set_suspend_voltage(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -318,6 +389,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Mark the regulator as enabled when the system is suspended.
     fn set_suspend_enable(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -325,6 +397,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Mark the regulator as disabled when the system is suspended.
     fn set_suspend_disable(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -332,6 +405,7 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Set the operating mode for the regulator when the system is suspended.
     fn set_suspend_mode(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -340,10 +414,12 @@ pub trait Operations {
         Err(ENOTSUPP)
     }
 
+    /// Resume operation of suspended regulator.
     fn resume(_data: <Self::Data as ForeignOwnable>::Borrowed<'_>, _rdev: &RegulatorDev) -> Result {
         Err(ENOTSUPP)
     }
 
+    /// Configure the regulator to pull down when the regulator is disabled.
     fn set_pull_down(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _rdev: &RegulatorDev,
@@ -529,13 +605,13 @@ impl RegulatorDev {
 
 ///
 pub trait RegmapHelpers: crate::private::Sealed {
-    /// Helper to implement [`Operations::get_voltage_set_pickable`] using regmap
+    /// Helper to implement [`Operations::get_voltage_sel_pickable`] using regmap
     fn get_voltage_sel_pickable_regmap(&self) -> Result;
-    /// Helper to implement [`Operations::set_voltage_set_pickable`] using regmap
+    /// Helper to implement [`Operations::set_voltage_sel_pickable`] using regmap
     fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result;
-    /// Helper to implement [`Operations::get_voltage_set`] using regmap
+    /// Helper to implement [`Operations::get_voltage_sel`] using regmap
     fn get_voltage_sel_regmap(&self) -> Result<i32>;
-    /// Helper to implement [`Operations::set_voltage_set`] using regmap
+    /// Helper to implement [`Operations::set_voltage_sel`] using regmap
     fn set_voltage_sel_regmap(&self, sel: u32) -> Result;
 
     /// Helper to implement [`Operations::is_enabled`] using regmap.
@@ -912,10 +988,10 @@ impl<T: Operations> OperationsVtable<T> {
     ) -> core::ffi::c_int {
         let rdev = ManuallyDrop::new(RegulatorDev(rdev));
         let data = unsafe { T::Data::borrow(bindings::rdev_get_drvdata(rdev.0)) };
-        from_result(|| {
-            T::enable_time(data, &rdev)?;
-            Ok(0)
-        })
+        match T::enable_time(data, &rdev) {
+            Ok(v) => v.as_micros() as _,
+            Err(e) => e.to_errno(),
+        }
     }
 
     unsafe extern "C" fn set_ramp_delay_callback(

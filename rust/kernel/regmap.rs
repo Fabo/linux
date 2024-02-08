@@ -1,6 +1,8 @@
-/// TODO:
-///  * Assert if lsb > msb
-///  * Assert if msb >= 32
+// SPDX-License-Identifier: GPL-2.0
+
+//! Register map access API.
+//!
+//! C header: [`include/linux/regmap.h`](srctree/include/linux/regmap.h)
 
 #[cfg(CONFIG_I2C)]
 use crate::i2c;
@@ -76,6 +78,7 @@ impl Regmap {
 pub struct RegFields<const N: usize>([bindings::reg_field; N]);
 
 impl<const N: usize> RegFields<N> {
+    #[doc(hidden)]
     pub const fn new(fields: [bindings::reg_field; N]) -> Self {
         Self(fields)
     }
@@ -104,12 +107,13 @@ unsafe impl<const N: usize> Send for Fields<N> {}
 /// config_with!(max_register: u32);
 /// ```
 macro_rules! config_with {
-    ($name:ident: $type:ty) => {
-        config_with!($name: $type, $name);
+    ($(#[$meta:meta])* $name:ident: $type:ty) => {
+        config_with!($(#[$meta])* $name: $type, $name);
     };
 
-    ($name:ident: $type:ty, $e:expr) => {
+    ($(#[$meta:meta])* $name:ident: $type:ty, $e:expr) => {
         paste! {
+            $(#[$meta])*
             pub const fn [<with_$name>](mut self, $name: $type) -> Self {
                 self.raw.$name = $e;
                 self
@@ -118,6 +122,7 @@ macro_rules! config_with {
     };
 }
 
+#[doc(hidden)]
 pub trait ConfigOps {
     fn is_readable_reg(reg: u32) -> bool;
     fn is_writeable_reg(reg: u32) -> bool;
@@ -151,14 +156,40 @@ impl<T: ConfigOps> Config<T> {
         }
     }
 
-    config_with!(can_sleep: bool);
+    config_with!(
+        /// Specifies whether regmap operations can sleep.
+        can_sleep: bool
+    );
 
-    config_with!(name: &'static CStr, name.as_char_ptr());
+    config_with!(
+        /// Name of the regmap.
+        ///
+        /// Useful when a device has multiple register regions.
+        name: &'static CStr, name.as_char_ptr()
+    );
 
-    config_with!(max_register: u32);
-    config_with!(pad_bits: i32);
-    config_with!(reg_base: u32);
-    config_with!(reg_stride: i32);
+    config_with!(
+        /// Specifies the maximum valid register address.
+        max_register: u32
+    );
+
+    config_with!(
+        /// Number of bits of padding between register and value.
+        pad_bits: i32
+    );
+
+    config_with!(
+        /// Value to be added to every register address before performing any operation.
+        reg_base: u32
+    );
+
+    config_with!(
+        /// The register address stride.
+        ///
+        /// Valid register addresses are a multiple of this value. If set to 0, a value of 1 will be
+        /// used.
+        reg_stride: i32
+    );
 
     config_with!(can_multi_write: bool);
     config_with!(use_single_read: bool);
@@ -166,27 +197,46 @@ impl<T: ConfigOps> Config<T> {
     config_with!(use_relaxed_mmio: bool);
 
     config_with!(fast_io: bool);
-    config_with!(io_port: bool);
+
+    config_with!(
+        /// Support IO port accessors. Make sense only when MMIO vs IO port access can be
+        /// distinguished.
+        io_port: bool
+    );
 
     config_with!(read_flag_mask: core::ffi::c_ulong);
     config_with!(write_flag_mask: core::ffi::c_ulong);
-    config_with!(zero_flag_mask: bool);
 
-    config_with!(max_raw_read: usize);
-    config_with!(max_raw_write: usize);
+    config_with!(
+        /// If `zero_flag_mask` is set, the value from [`Config::with_read_flag_mask`] and
+        /// [`Config::with_write_flag_mask`] are used even if they are both empty.
+        zero_flag_mask: bool
+    );
 
-    config_with!(reg_format_endian: Endian, reg_format_endian as _);
-    config_with!(val_format_endian: Endian, val_format_endian as _);
+    config_with!(
+        /// Max raw read size that can be used on the bus.
+        max_raw_read: usize
+    );
 
-    config_with!(cache_type: CacheType, cache_type as _);
+    config_with!(
+        /// Max raw write size that can be used on the bus.
+        max_raw_write: usize
+    );
 
-    /*
-    const struct regmap_range_cfg *ranges;
-    unsigned int num_ranges;
+    config_with!(
+        /// Endianness for formatted register addresses.
+        reg_format_endian: Endian, reg_format_endian as _
+    );
 
-    const struct reg_default *reg_defaults;
-    unsigned int num_reg_defaults;
-    */
+    config_with!(
+        /// Endianness for formatted register values.
+        val_format_endian: Endian, val_format_endian as _
+    );
+
+    config_with!(
+        /// Type of caching being performed.
+        cache_type: CacheType, cache_type as _
+    );
 
     unsafe extern "C" fn writeable_reg_callback(_dev: *mut bindings::device, reg: u32) -> bool {
         T::is_writeable_reg(reg)
@@ -216,18 +266,26 @@ impl<T: ConfigOps> Config<T> {
     }
 }
 
+/// Definitions describing how registers can be accessed.
 pub mod access {
+    /// Register can be read from.
     pub const READ: u32 = 0b000001;
+    /// Register can be written to.
     pub const WRITE: u32 = 0b000010;
+    /// Register should not be read outside of a call from the driver.
     pub const PRECIOUS: u32 = 0b000100;
+    /// Register value can't be cached.
     pub const VOLATILE: u32 = 0b001000;
+    /// Register supports multiple write operations without incrementing the register number.
     pub const WRITE_NO_INC: u32 = 0b010000;
+    /// Register supports multiple read operations without incrementing the register number.
     pub const READ_NO_INC: u32 = 0b100000;
 
-    /* Helper */
+    /// Register can be read from and written to.
     pub const RW: u32 = READ | WRITE;
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! check_access {
     ($type:ident, $access:expr, $reg:ident, $addr:literal) => {
@@ -236,8 +294,10 @@ macro_rules! check_access {
         }
     };
 }
+#[doc(hidden)]
 pub use check_access;
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! field_bit {
     ($field_name:ident, $reg:literal, $pos:literal, rw) => {
@@ -320,6 +380,7 @@ macro_rules! field_bit {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! field_enum {
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], ro, {
@@ -423,6 +484,7 @@ macro_rules! field_enum {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! field_raw {
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], rw) => {
@@ -560,6 +622,7 @@ macro_rules! field_raw {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! fields {
     ($type:ident, $reg:ident, $name:ident, $($t:tt)*) => {
@@ -579,6 +642,7 @@ macro_rules! fields {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! reg_field {
     ($reg_name:ident, $field_name:ident) => {
@@ -586,6 +650,7 @@ macro_rules! reg_field {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! count_fields {
     () => { 0usize };
