@@ -75,6 +75,7 @@ impl From<Mode> for Status {
     }
 }
 
+/// Regulator operations
 #[vtable]
 pub trait Operations {
     /// User data that will be passed to all operations
@@ -481,37 +482,6 @@ impl Desc {
         self
     }
 
-    pub const fn with_linear_mapping(
-        mut self,
-        reg: u32,
-        mask: u32,
-        min_uv: u32,
-        uv_step: u32,
-        n_voltages: u32,
-        linear_min_sel: u32,
-    ) -> Self {
-        self.0.vsel_reg = reg;
-        self.0.vsel_mask = mask;
-        self.0.n_voltages = n_voltages;
-        self.0.min_uV = min_uv;
-        self.0.uV_step = uv_step;
-        self.0.linear_min_sel = linear_min_sel;
-        self
-    }
-
-    pub const fn with_linear_ranges(
-        mut self,
-        reg: u32,
-        mask: u32,
-        ranges: &'static [LinearRange],
-    ) -> Self {
-        self.0.vsel_reg = reg;
-        self.0.vsel_mask = mask;
-        self.0.linear_ranges = ranges.as_ptr();
-        self.0.n_linear_ranges = ranges.len() as _;
-        self
-    }
-
     /// Set the regulator owner
     pub const fn with_owner(mut self, owner: &'static ThisModule) -> Self {
         self.0.owner = owner.to_ptr();
@@ -576,22 +546,6 @@ impl RegulatorDev {
         Ok(Self(rdev))
     }
 
-    pub fn list_voltage_linear_range(&self, selector: u32) -> Result<i32> {
-        let ret = unsafe { bindings::regulator_list_voltage_linear_range(self.0, selector) };
-        if ret < 0 {
-            return Err(Error::from_errno(ret));
-        }
-        Ok(ret)
-    }
-
-    pub fn list_voltage_linear(&self, selector: u32) -> Result<i32> {
-        let ret = unsafe { bindings::regulator_list_voltage_linear(self.0, selector) };
-        if ret < 0 {
-            return Err(Error::from_errno(ret));
-        }
-        Ok(ret)
-    }
-
     /// Get regulator's name
     pub fn get_name(&self) -> &'static CStr {
         unsafe { CStr::from_char_ptr(bindings::rdev_get_name(self.0)) }
@@ -605,10 +559,6 @@ impl RegulatorDev {
 
 ///
 pub trait RegmapHelpers: crate::private::Sealed {
-    /// Helper to implement [`Operations::get_voltage_sel_pickable`] using regmap
-    fn get_voltage_sel_pickable_regmap(&self) -> Result;
-    /// Helper to implement [`Operations::set_voltage_sel_pickable`] using regmap
-    fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result;
     /// Helper to implement [`Operations::get_voltage_sel`] using regmap
     fn get_voltage_sel_regmap(&self) -> Result<i32>;
     /// Helper to implement [`Operations::set_voltage_sel`] using regmap
@@ -631,15 +581,6 @@ pub trait RegmapHelpers: crate::private::Sealed {
     /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
     /// to setup the fields required by regmap.
     fn disable_regmap(&self) -> Result;
-    /// Helper to implement [`Operations::set_bypass`] using regmap
-    fn set_bypass_regmap(&self, enable: bool) -> Result;
-    /// Helper to implement [`Operations::get_bypass`] using regmap
-    fn get_bypass_regmap(&self) -> Result<bool>;
-
-    /// Helper to implement [`Operations::set_soft_start`] using regmap
-    fn set_soft_start_regmap(&self) -> Result;
-    /// Helper to implement [`Operations::set_pull_down`] using regmap
-    fn set_pull_down_regmap(&self) -> Result;
 
     /// Helper to implement [`Operations::set_active_discharge`] using regmap
     ///
@@ -650,22 +591,11 @@ pub trait RegmapHelpers: crate::private::Sealed {
     fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result;
     /// Helper to implement [`Operations::get_current_limit`] using regmap
     fn get_current_limit_regmap(&self) -> Result<i32>;
-
-    /// Helper to implement [`Operations::set_ramp_delay`] using regmap
-    fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result;
 }
 
 impl crate::private::Sealed for RegulatorDev {}
 
 impl RegmapHelpers for RegulatorDev {
-    fn get_voltage_sel_pickable_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_get_voltage_sel_pickable_regmap(self.0) })
-    }
-
-    fn set_voltage_sel_pickable_regmap(&self, sel: u32) -> Result {
-        to_result(unsafe { bindings::regulator_set_voltage_sel_pickable_regmap(self.0, sel) })
-    }
-
     fn get_voltage_sel_regmap(&self) -> Result<i32> {
         let ret = unsafe { bindings::regulator_get_voltage_sel_regmap(self.0) };
         if ret < 0 {
@@ -694,24 +624,6 @@ impl RegmapHelpers for RegulatorDev {
         to_result(unsafe { bindings::regulator_disable_regmap(self.0) })
     }
 
-    fn set_bypass_regmap(&self, enable: bool) -> Result {
-        to_result(unsafe { bindings::regulator_set_bypass_regmap(self.0, enable) })
-    }
-
-    fn get_bypass_regmap(&self) -> Result<bool> {
-        let mut enable: bool = false;
-        let ret = to_result(unsafe { bindings::regulator_get_bypass_regmap(self.0, &mut enable) });
-        ret.map(|_| enable)
-    }
-
-    fn set_soft_start_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_set_soft_start_regmap(self.0) })
-    }
-
-    fn set_pull_down_regmap(&self) -> Result {
-        to_result(unsafe { bindings::regulator_set_pull_down_regmap(self.0) })
-    }
-
     fn set_active_discharge_regmap(&self, enable: bool) -> Result {
         to_result(unsafe { bindings::regulator_set_active_discharge_regmap(self.0, enable) })
     }
@@ -726,10 +638,6 @@ impl RegmapHelpers for RegulatorDev {
             return Err(Error::from_errno(ret));
         }
         Ok(ret)
-    }
-
-    fn set_ramp_delay_regmap(&self, ramp_delay: i32) -> Result {
-        to_result(unsafe { bindings::regulator_set_ramp_delay_regmap(self.0, ramp_delay) })
     }
 }
 

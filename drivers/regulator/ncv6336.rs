@@ -32,7 +32,7 @@ kernel::module_i2c_driver! {
     license: "GPL",
 }
 
-regmap::registers!(REGS, {
+regmap::regmap_registers!(REGS, {
     {
         pid, 0x3, kernel::regmap::access::READ, {
             value => raw([7:0], ro),

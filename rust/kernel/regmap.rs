@@ -10,21 +10,8 @@ use crate::{
     bindings,
     error::{to_result, Result},
     macros::paste,
-    str::CStr,
 };
 use core::{marker::PhantomData, mem::MaybeUninit};
-
-/// Register Endianness
-#[repr(u32)]
-pub enum Endian {
-    Default = bindings::regmap_endian_REGMAP_ENDIAN_DEFAULT,
-    /// Big Endian
-    Big = bindings::regmap_endian_REGMAP_ENDIAN_BIG,
-    /// Little Endian
-    Little = bindings::regmap_endian_REGMAP_ENDIAN_LITTLE,
-    /// System's native Endian
-    Native = bindings::regmap_endian_REGMAP_ENDIAN_NATIVE,
-}
 
 /// Type of caching
 #[repr(u32)]
@@ -39,11 +26,19 @@ pub enum CacheType {
     Maple = bindings::regcache_type_REGCACHE_MAPLE,
 }
 
+/// Register map
+///
+/// # Examples
+///
+/// ```
+/// let regmap = Regmap::init_i2c(i2c, &config);
+/// ```
 pub struct Regmap {
     ptr: *mut bindings::regmap,
 }
 impl Regmap {
     #[cfg(CONFIG_I2C)]
+    /// Initialize a [`Regmap`] structure for the `i2c` device.
     pub fn init_i2c<T: ConfigOps>(i2c: &i2c::Client, config: &Config<T>) -> Self {
         let regmap = unsafe { bindings::regmap_init_i2c(i2c.raw_client(), &config.raw) };
 
@@ -52,7 +47,7 @@ impl Regmap {
 
     pub fn alloc_fields<const N: usize>(
         &mut self,
-        reg_fields: &'static RegFields<N>,
+        reg_fields: &'static FieldsDesc<N>,
     ) -> Result<Fields<N>> {
         let mut rm_fields = [core::ptr::null_mut(); N];
         to_result(unsafe {
@@ -75,24 +70,46 @@ impl Regmap {
     }
 }
 
-pub struct RegFields<const N: usize>([bindings::reg_field; N]);
+///
+pub struct FieldsDesc<const N: usize>([bindings::reg_field; N]);
 
-impl<const N: usize> RegFields<N> {
+impl<const N: usize> FieldsDesc<N> {
+    // macro use only
     #[doc(hidden)]
     pub const fn new(fields: [bindings::reg_field; N]) -> Self {
         Self(fields)
     }
 
+    /// Number of fields being held by `FieldsDesc<N>`
+    ///
+    /// This function should be used to retrieve the number of fields that were
+    /// created when calling [`regmap_register_fields`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// regmap_register_fields!(REGS, {
+    ///     {pid, 0x3, kernel::regmap::access::READ, { value => raw([7:0], ro) }},
+    ///});
+    ///
+    /// struct Registrations {
+    ///    fields: Fields<{ REGS.count() }>,
+    /// }
+    /// ```
     pub const fn count(&self) -> usize {
         N
     }
 }
 
+/// Regmap fields
+///
+///
 pub struct Fields<const N: usize> {
     rm_fields: [*mut bindings::regmap_field; N],
-    _reg_fields: &'static RegFields<N>,
+    _reg_fields: &'static FieldsDesc<N>,
 }
 impl<const N: usize> Fields<N> {
+    /// Get field `index`
     pub fn index(&mut self, index: usize) -> *mut bindings::regmap_field {
         self.rm_fields[index]
     }
@@ -122,6 +139,7 @@ macro_rules! config_with {
     };
 }
 
+// macro use only
 #[doc(hidden)]
 pub trait ConfigOps {
     fn is_readable_reg(reg: u32) -> bool;
@@ -132,11 +150,13 @@ pub trait ConfigOps {
     fn is_writeable_noinc_reg(reg: u32) -> bool;
 }
 
+/// Regmap Configuration
 pub struct Config<T: ConfigOps> {
     raw: bindings::regmap_config,
     _phantom: PhantomData<T>,
 }
 impl<T: ConfigOps> Config<T> {
+    /// Create a new regmap Config
     pub const fn new(reg_bits: i32, val_bits: i32) -> Self {
         let cfg = MaybeUninit::<bindings::regmap_config>::zeroed();
         let mut cfg = unsafe { cfg.assume_init() };
@@ -157,80 +177,8 @@ impl<T: ConfigOps> Config<T> {
     }
 
     config_with!(
-        /// Specifies whether regmap operations can sleep.
-        can_sleep: bool
-    );
-
-    config_with!(
-        /// Name of the regmap.
-        ///
-        /// Useful when a device has multiple register regions.
-        name: &'static CStr, name.as_char_ptr()
-    );
-
-    config_with!(
         /// Specifies the maximum valid register address.
         max_register: u32
-    );
-
-    config_with!(
-        /// Number of bits of padding between register and value.
-        pad_bits: i32
-    );
-
-    config_with!(
-        /// Value to be added to every register address before performing any operation.
-        reg_base: u32
-    );
-
-    config_with!(
-        /// The register address stride.
-        ///
-        /// Valid register addresses are a multiple of this value. If set to 0, a value of 1 will be
-        /// used.
-        reg_stride: i32
-    );
-
-    config_with!(can_multi_write: bool);
-    config_with!(use_single_read: bool);
-    config_with!(use_single_write: bool);
-    config_with!(use_relaxed_mmio: bool);
-
-    config_with!(fast_io: bool);
-
-    config_with!(
-        /// Support IO port accessors. Make sense only when MMIO vs IO port access can be
-        /// distinguished.
-        io_port: bool
-    );
-
-    config_with!(read_flag_mask: core::ffi::c_ulong);
-    config_with!(write_flag_mask: core::ffi::c_ulong);
-
-    config_with!(
-        /// If `zero_flag_mask` is set, the value from [`Config::with_read_flag_mask`] and
-        /// [`Config::with_write_flag_mask`] are used even if they are both empty.
-        zero_flag_mask: bool
-    );
-
-    config_with!(
-        /// Max raw read size that can be used on the bus.
-        max_raw_read: usize
-    );
-
-    config_with!(
-        /// Max raw write size that can be used on the bus.
-        max_raw_write: usize
-    );
-
-    config_with!(
-        /// Endianness for formatted register addresses.
-        reg_format_endian: Endian, reg_format_endian as _
-    );
-
-    config_with!(
-        /// Endianness for formatted register values.
-        val_format_endian: Endian, val_format_endian as _
     );
 
     config_with!(
@@ -285,35 +233,38 @@ pub mod access {
     pub const RW: u32 = READ | WRITE;
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! check_access {
+macro_rules! regmap_check_access {
     ($type:ident, $access:expr, $reg:ident, $addr:literal) => {
         if kernel::regmap::access::$type & $access > 0 && $reg == $addr {
             return true;
         }
     };
 }
+// macro use only
 #[doc(hidden)]
-pub use check_access;
+pub use regmap_check_access;
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! field_bit {
+macro_rules! regmap_field_bit {
     ($field_name:ident, $reg:literal, $pos:literal, rw) => {
-        $crate::field_bit!($field_name, $reg, $pos, reserved);
-        $crate::field_bit!($field_name, _ro);
-        $crate::field_bit!($field_name, _wo);
+        $crate::regmap_field_bit!($field_name, $reg, $pos, reserved);
+        $crate::regmap_field_bit!($field_name, _ro);
+        $crate::regmap_field_bit!($field_name, _wo);
     };
 
     ($field_name:ident, $reg:literal, $pos:literal, ro) => {
-        $crate::field_bit!($field_name, $reg, $pos, reserved);
-        $crate::field_bit!($field_name, _ro);
+        $crate::regmap_field_bit!($field_name, $reg, $pos, reserved);
+        $crate::regmap_field_bit!($field_name, _ro);
     };
 
     ($field_name:ident, $reg:literal, $pos:literal, wo) => {
-        $crate::field_bit!($field_name, $reg, $pos, reserved);
-        $crate::field_bit!($field_name, _wo);
+        $crate::regmap_field_bit!($field_name, $reg, $pos, reserved);
+        $crate::regmap_field_bit!($field_name, _wo);
     };
 
     ($field_name:ident, $reg:literal, $pos:literal, reserved) => {
@@ -380,26 +331,27 @@ macro_rules! field_bit {
     };
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! field_enum {
+macro_rules! regmap_field_enum {
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], ro, {
         $($k:ident = $v:literal,)+ }) => {
-        $crate::field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
-        $crate::field_enum!($field_name, _ro);
+        $crate::regmap_field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
+        $crate::regmap_field_enum!($field_name, _ro);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], rw, {
         $($k:ident = $v:literal,)+ }) => {
-        $crate::field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
-        $crate::field_enum!($field_name, _ro);
-        $crate::field_enum!($field_name, _wo);
+        $crate::regmap_field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
+        $crate::regmap_field_enum!($field_name, _ro);
+        $crate::regmap_field_enum!($field_name, _wo);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], wo, {
         $($k:ident = $v:literal,)+ }) => {
-        $crate::field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
-        $crate::field_enum!($field_name, _wo);
+        $crate::regmap_field_enum!($field_name, $reg, [$msb:$lsb], reserved, { $($k = $v,)+ });
+        $crate::regmap_field_enum!($field_name, _wo);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], reserved, {
@@ -484,23 +436,24 @@ macro_rules! field_enum {
     };
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! field_raw {
+macro_rules! regmap_field_raw {
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], rw) => {
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], reserved);
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], _ro);
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], _wo);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], reserved);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], _ro);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], _wo);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], ro) => {
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], reserved);
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], _ro);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], reserved);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], _ro);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], wo) => {
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], reserved);
-        $crate::field_raw!($field_name, $reg, [$msb:$lsb], _wo);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], reserved);
+        $crate::regmap_field_raw!($field_name, $reg, [$msb:$lsb], _wo);
     };
 
     ($field_name:ident, $reg:literal, [$msb:literal:$lsb:literal], reserved) => {
@@ -622,9 +575,10 @@ macro_rules! field_raw {
     };
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! fields {
+macro_rules! regmap_fields {
     ($type:ident, $reg:ident, $name:ident, $($t:tt)*) => {
         kernel::macros::paste! {
             #[allow(non_camel_case_types)]
@@ -637,28 +591,30 @@ macro_rules! fields {
                 }
             }
 
-            $crate::[<field_ $type>]!($name, $($t)*);
+            $crate::regmap_[<field_ $type>]!($name, $($t)*);
         }
     };
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! reg_field {
+macro_rules! regmap_reg_field {
     ($reg_name:ident, $field_name:ident) => {
         register::$reg_name::$field_name::reg_field()
     };
 }
 
+// macro use only
 #[doc(hidden)]
 #[macro_export]
-macro_rules! count_fields {
+macro_rules! regmap_count_fields {
     () => { 0usize };
-    ($type:ident $($rhs:ident)*) => { 1 + $crate::count_fields!($($rhs)*) };
+    ($type:ident $($rhs:ident)*) => { 1 + $crate::regmap_count_fields!($($rhs)*) };
 }
 
 #[macro_export]
-macro_rules! registers {
+macro_rules! regmap_register_fields {
     ($name:ident, {
         $( {
             $reg_name:ident, $reg_addr:literal, $access:expr, {
@@ -673,7 +629,7 @@ macro_rules! registers {
                 $(
                     pub mod $reg_name {
                         use kernel::{bindings, error::{Result}, regmap};
-                        $( $crate::fields!($type, $reg_name, $field_name, $reg_addr, $($x),*); )*
+                        $( $crate::regmap_fields!($type, $reg_name, $field_name, $reg_addr, $($x),*); )*
 
                         #[allow(dead_code)]
                         pub const fn addr() -> u32 {
@@ -743,14 +699,14 @@ macro_rules! registers {
             }
         }
 
-        const $name: regmap::RegFields<{$crate::count_fields!($($($type)*)+)}> =
-            regmap::RegFields::new([
+        const $name: regmap::FieldsDesc<{$crate::regmap_count_fields!($($($type)*)+)}> =
+            regmap::FieldsDesc::new([
                 $(
                     $(
-                        $crate::reg_field!($reg_name, $field_name)
+                        $crate::regmap_reg_field!($reg_name, $field_name)
                     ),*
                 ),+
             ]);
     };
 }
-pub use registers;
+pub use regmap_register_fields;

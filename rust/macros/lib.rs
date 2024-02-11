@@ -390,7 +390,9 @@ pub fn paste(input: TokenStream) -> TokenStream {
 
 /// Repeat a fragment of code and provide a numerical index for the current repetition
 ///
-/// ```
+/// # Examples
+///
+/// ```rust,ignore
 /// seq!(i in 0..10) {
 ///     func$i() {
 ///     }
