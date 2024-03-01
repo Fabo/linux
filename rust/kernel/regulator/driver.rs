@@ -46,11 +46,15 @@ use crate::{
     device,
     error::{code::*, from_err_ptr, from_result, Error, Result},
     macros::vtable,
+    private::Sealed,
     regulator::Mode,
     str::CStr,
+    sync::Arc,
     types::ForeignOwnable,
     ThisModule,
 };
+#[cfg(CONFIG_REGMAP)]
+use crate::{error::to_result, regmap::Regmap};
 use core::{
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
@@ -343,6 +347,8 @@ unsafe impl Sync for Desc {}
 pub struct Config<T: ForeignOwnable + Send + Sync = ()> {
     cfg: bindings::regulator_config,
     data: T,
+    #[cfg(CONFIG_REGMAP)]
+    regmap: Option<Arc<Regmap>>,
 }
 
 impl<T: ForeignOwnable + Send + Sync> Config<T> {
@@ -354,7 +360,16 @@ impl<T: ForeignOwnable + Send + Sync> Config<T> {
                 ..Default::default()
             },
             data,
+            #[cfg(CONFIG_REGMAP)]
+            regmap: None,
         }
+    }
+
+    /// Assign a regmap device to the config
+    #[cfg(CONFIG_REGMAP)]
+    pub fn with_regmap(mut self, regmap: Arc<Regmap>) -> Self {
+        self.regmap = Some(regmap);
+        self
     }
 }
 
@@ -369,6 +384,7 @@ impl<T: ForeignOwnable + Send + Sync> Config<T> {
 pub struct Device<T: ForeignOwnable + Send + Sync> {
     rdev: NonNull<bindings::regulator_dev>,
     _data_type: PhantomData<T>,
+    _regmap: Option<Arc<Regmap>>,
 }
 
 impl<T: ForeignOwnable + Send + Sync> Device<T> {
@@ -378,6 +394,7 @@ impl<T: ForeignOwnable + Send + Sync> Device<T> {
             // SAFETY: The caller of `Self::from_raw must garantee that `rdev` is non-null.
             rdev: unsafe { NonNull::new_unchecked(rdev) },
             _data_type: PhantomData::<T>,
+            _regmap: None,
         })
     }
 
@@ -389,6 +406,11 @@ impl<T: ForeignOwnable + Send + Sync> Device<T> {
     ) -> Result<Self> {
         config.cfg.driver_data = config.data.into_foreign() as _;
 
+        let regmap = config.regmap.take();
+        if let Some(regmap) = &regmap {
+            config.cfg.regmap = regmap.as_raw() as _;
+        };
+
         // SAFETY: By the type invariants, we know that `dev.as_ref().as_raw()` is always
         // valid and non-null, and the descriptor and config are guaranteed to be valid values,
         // hence it is safe to perform the FFI call.
@@ -399,6 +421,7 @@ impl<T: ForeignOwnable + Send + Sync> Device<T> {
         Ok(Self {
             rdev: NonNull::new(rdev).ok_or(EINVAL)?,
             _data_type: PhantomData::<T>,
+            _regmap: regmap,
         })
     }
 
@@ -447,6 +470,115 @@ impl<T: ForeignOwnable + Send + Sync> Drop for Device<T> {
 // implementation. It is safe to use it from any thread.
 unsafe impl<T: ForeignOwnable + Send + Sync> Send for Device<T> {}
 unsafe impl<T: ForeignOwnable + Send + Sync> Sync for Device<T> {}
+
+impl<T: ForeignOwnable + Send + Sync> Sealed for Device<T> {}
+
+/// Helper functions to implement some of the [`Driver`] trait methods using [`Regmap`].
+///
+/// This trait is implemented by [`Device`] and is Sealed to prevent
+/// to be implemented by anyone else.
+#[cfg(CONFIG_REGMAP)]
+pub trait RegmapHelpers: Sealed {
+    /// Implementation of [`Driver::get_voltage_sel`] using [`Regmap`].
+    fn get_voltage_sel_regmap(&self) -> Result<i32>;
+    /// Implementation of [`Driver::set_voltage_sel`] using [`Regmap`].
+    fn set_voltage_sel_regmap(&self, sel: u32) -> Result;
+
+    /// Implementation of [`Driver::is_enabled`] using [`Regmap`].
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn is_enabled_regmap(&self) -> Result<bool>;
+
+    /// Implementation of [`Driver::enable`] using [`Regmap`].
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn enable_regmap(&self) -> Result;
+
+    /// Implementation of [`Driver::disable`] using [`Regmap`].
+    ///
+    /// [`Desc::with_enable`] or [`Desc::with_inverted_enable`] must have been called
+    /// to setup the fields required by regmap.
+    fn disable_regmap(&self) -> Result;
+
+    /// Implementation of [`Driver::set_active_discharge`] using [`Regmap`].
+    ///
+    /// [`Desc::with_active_discharge`] must have been called to setup the fields required
+    /// by regmap.
+    fn set_active_discharge_regmap(&self, enable: bool) -> Result;
+    /// Implementation of [`Driver::set_current_limit`] using [`Regmap`].
+    fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result;
+    /// Implementation of [`Driver::get_current_limit`] using [`Regmap`].
+    fn get_current_limit_regmap(&self) -> Result<i32>;
+}
+
+#[cfg(CONFIG_REGMAP)]
+impl<T: ForeignOwnable + Send + Sync> RegmapHelpers for Device<T> {
+    fn get_voltage_sel_regmap(&self) -> Result<i32> {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        let ret = unsafe { bindings::regulator_get_voltage_sel_regmap(self.rdev.as_ptr()) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret)
+    }
+
+    fn set_voltage_sel_regmap(&self, sel: u32) -> Result {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        to_result(unsafe { bindings::regulator_set_voltage_sel_regmap(self.rdev.as_ptr(), sel) })
+    }
+
+    fn is_enabled_regmap(&self) -> Result<bool> {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        let ret = unsafe { bindings::regulator_is_enabled_regmap(self.rdev.as_ptr()) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret > 0)
+    }
+
+    fn enable_regmap(&self) -> Result {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        to_result(unsafe { bindings::regulator_enable_regmap(self.rdev.as_ptr()) })
+    }
+
+    fn disable_regmap(&self) -> Result {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        to_result(unsafe { bindings::regulator_disable_regmap(self.rdev.as_ptr()) })
+    }
+
+    fn set_active_discharge_regmap(&self, enable: bool) -> Result {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        to_result(unsafe {
+            bindings::regulator_set_active_discharge_regmap(self.rdev.as_ptr(), enable)
+        })
+    }
+
+    fn set_current_limit_regmap(&self, min_ua: i32, max_ua: i32) -> Result {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        to_result(unsafe {
+            bindings::regulator_set_current_limit_regmap(self.rdev.as_ptr(), min_ua, max_ua)
+        })
+    }
+
+    fn get_current_limit_regmap(&self) -> Result<i32> {
+        // SAFETY: The type invariants guarantee that `self.rdev` is valid and non-null,
+        // so it is safe to perform the FFI call.
+        let ret = unsafe { bindings::regulator_get_current_limit_regmap(self.rdev.as_ptr()) };
+        if ret < 0 {
+            return Err(Error::from_errno(ret));
+        }
+        Ok(ret)
+    }
+}
 
 /// [`Device`] type
 pub enum Type {
