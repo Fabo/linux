@@ -12,6 +12,9 @@
 #include <linux/i2c.h>
 #include <linux/jiffies.h>
 #include <linux/mdio.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
 #include <linux/phy.h>
 #include <linux/platform_device.h>
 #include <linux/refcount.h>

@@ -12,6 +12,7 @@ use crate::{
     error::Result,
     init::InPlaceInit,
     init::PinInit,
+    of,
     pin_init,
     revocable::{Revocable, RevocableGuard},
     str::CStr,
@@ -39,6 +40,13 @@ use core::{
 pub unsafe trait RawDevice {
     /// Returns the raw `struct device` related to `self`.
     fn raw_device(&self) -> *mut bindings::device;
+
+    /// Gets the OpenFirmware node attached to this device
+    fn of_node(&self) -> Option<of::Node> {
+        let ptr = self.raw_device();
+
+        unsafe { of::Node::get_from_raw((*ptr).of_node) }
+    }
 
     /// Prints an emergency-level message (level 0) prefixed with device information.
     ///
