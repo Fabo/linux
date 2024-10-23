@@ -6,6 +6,9 @@
 
 use crate::{bindings, device_id::RawDeviceId, prelude::*};
 
+/// OF IdTable type.
+pub type IdTable<T> = &'static dyn kernel::device_id::IdTable<DeviceId, T>;
+
 /// An open firmware device id.
 #[derive(Clone, Copy)]
 pub struct DeviceId(bindings::of_device_id);

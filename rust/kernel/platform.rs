@@ -105,7 +105,7 @@ macro_rules! module_platform_driver {
 }
 
 /// IdTable type for platform drivers.
-pub type IdTable<T> = &'static dyn kernel::device_id::IdTable<of::DeviceId, T>;
+pub type IdTable<T> = of::IdTable<T>;
 
 /// The platform driver trait.
 ///
