@@ -2,7 +2,7 @@
 
 //! I2C devices and drivers.
 //!
-//! C header: [`include/linux/i2c.h`](../../../../include/linux/i2c.h)
+//! C header: [`include/linux/i2c.h`](srctree/include/linux/i2c.h)
 
 use crate::{
     bindings,
@@ -11,7 +11,8 @@ use crate::{
     driver,
     error::{from_result, to_result, Result},
     of,
-    str::{BStr, CStr},
+    prelude::*,
+    str::CStr,
     types::ForeignOwnable,
     ThisModule,
 };
@@ -21,38 +22,40 @@ use crate::{
 #[derive(Clone, Copy)]
 pub struct DeviceId(bindings::i2c_device_id);
 
-impl DeviceId {
-    /// Create a new I2C DeviceId
-    pub const fn new(name: &CStr) -> Self {
-        let device_id = core::mem::MaybeUninit::<bindings::i2c_device_id>::zeroed();
-        let mut device_id = unsafe { device_id.assume_init() };
-
-        let name = BStr::from_bytes(name.as_bytes_with_nul());
-        assert!(name.len() <= device_id.name.len());
-
-        let mut i = 0;
-        while i < name.len() {
-            device_id.name[i] = name.deref_const()[i] as _;
-            i += 1;
-        }
-
-        Self(device_id)
-    }
-}
-
 // SAFETY: `ZERO` is all zeroed-out and `to_rawid` stores `offset` in `i2c_device_id::driver_data`.
 unsafe impl RawDeviceId for DeviceId {
     type RawType = bindings::i2c_device_id;
+
     const DRIVER_DATA_OFFSET: usize = core::mem::offset_of!(bindings::i2c_device_id, driver_data);
+
+    fn index(&self) -> usize {
+        self.0.driver_data as _
+    }
+}
+
+impl DeviceId {
+    /// Create a new I2C DeviceId
+    pub const fn new(name: &CStr) -> Self {
+        let src = name.as_bytes_with_nul();
+        let mut i2c: bindings::i2c_device_id = unsafe { core::mem::zeroed() };
+
+        let mut i = 0;
+        while i < src.len() {
+            i2c.name[i] = src[i] as _;
+            i += 1;
+        }
+
+        Self(i2c)
+    }
 }
 
 /// Alias for `device_id::IdTable` containing I2C's `DeviceId`
 pub type IdTable<T> = &'static dyn device_id::IdTable<DeviceId, T>;
 
 /// An adapter for the registration of i2c drivers.
-pub struct Adapter<T: Driver>(T);
+pub struct Adapter<T: Driver + 'static>(T);
 
-impl<T: Driver> driver::RegistrationOps for Adapter<T> {
+impl<T: Driver + 'static> driver::RegistrationOps for Adapter<T> {
     type RegType = bindings::i2c_driver;
 
     fn register(
@@ -63,10 +66,10 @@ impl<T: Driver> driver::RegistrationOps for Adapter<T> {
         i2cdrv.driver.name = name.as_char_ptr();
         i2cdrv.probe = Some(Self::probe_callback);
         i2cdrv.remove = Some(Self::remove_callback);
-        if let Some(t) = T::I2C_DEVICE_ID_TABLE {
+        if let Some(t) = T::I2C_TABLE {
             i2cdrv.id_table = t.as_ptr();
         }
-        if let Some(t) = T::OF_DEVICE_ID_TABLE {
+        if let Some(t) = T::OF_TABLE {
             i2cdrv.driver.of_match_table = t.as_ptr();
         }
 
@@ -101,49 +104,32 @@ impl<T: Driver> Adapter<T> {
     }
 
     extern "C" fn remove_callback(i2c: *mut bindings::i2c_client) {
-        // SAFETY: `i2c` is guaranteed to be a valid, non-null pointer
+        // SAFETY: `i2c` is a valid pointer to a `struct i2c_client`.
         let ptr = unsafe { bindings::i2c_get_clientdata(i2c) };
-        // SAFETY:
-        //   - we allocated this pointer using `T::Data::into_pointer`,
-        //     so it is safe to turn back into a `T::Data`.
-        //   - the allocation happened in `probe`, no-one freed the memory,
-        //     `remove` is the canonical kernel location to free driver data. so OK
-        //     to convert the pointer back to a Rust structure here.
-        let data = unsafe { T::Data::from_foreign(ptr) };
-        T::remove(&data);
+
+        // SAFETY: `remove_callback` is only ever called after a successful call to
+        // `probe_callback`, hence it's guaranteed that `ptr` points to a valid and initialized
+        // `KBox<T>` pointer created through `KBox::into_foreign`.
+        let _ = unsafe { KBox::<T>::from_foreign(ptr) };
     }
 }
 
 /// A I2C driver.
 pub trait Driver {
-    /// Data stored on device by driver.
-    ///
-    /// Corresponds to the data set or retrieved via the kernel's
-    /// `i2c_{set,get}_clientdata()` functions.
-    ///
-    /// Require that `Data` implements `ForeignOwnable`. We guarantee to
-    /// never move the underlying wrapped data structure. This allows
-    type Data: ForeignOwnable = ();
-
     /// The type holding information about each device id supported by the driver.
-    type IdInfo: 'static = ();
+    type IdInfo: 'static;
 
     /// The table of i2c device ids supported by the driver.
-    const I2C_DEVICE_ID_TABLE: Option<IdTable<Self::IdInfo>> = None;
+    const I2C_TABLE: Option<IdTable<Self::IdInfo>>;
 
     /// The table of OF device ids supported by the driver.
-    const OF_DEVICE_ID_TABLE: Option<of::IdTable<Self::IdInfo>> = None;
+    const OF_TABLE: Option<of::IdTable<Self::IdInfo>>;
 
     /// I2C driver probe.
     ///
     /// Called when a new i2c client is added or discovered.
     /// Implementers should attempt to initialize the client here.
-    fn probe(client: &mut Client) -> Result<Self::Data>;
-
-    /// I2C driver remove.
-    ///
-    /// Called when an i2c client is removed.
-    fn remove(_data: &Self::Data) {}
+    fn probe(client: &mut Client) -> Result<Pin<KBox<Self>>>;
 }
 
 /// A I2C Client device.
@@ -213,10 +199,10 @@ macro_rules! module_i2c_driver {
     };
 }
 
-/// Create a I2C `IdTable` with its alias for modpost.
+/// Create an I2C `IdTable` with an "alias" for modpost.
 #[macro_export]
 macro_rules! i2c_device_table {
-    ($module_table_name:ident, $table_name:ident, $id_info_type: ty, $table_data: expr) => {
+    ($table_name:ident, $module_table_name:ident, $id_info_type: ty, $table_data: expr) => {
         const $table_name: $crate::device_id::IdArray<
             $crate::i2c::DeviceId,
             $id_info_type,
