@@ -133,7 +133,7 @@ impl From<Mode> for Status {
 #[vtable]
 pub trait Driver {
     /// User data that will be accessible to all operations
-    type Data: ForeignOwnable + Send + Sync = ();
+    type Data: ForeignOwnable + Send + Sync;
 
     /// Return one of the supported voltages, in microvolt; zero if the selector indicates a
     /// voltage that is unusable by the system; or negative errno. Selectors range from zero to one
@@ -487,6 +487,7 @@ impl Drop for Regulator {
 // SAFETY: `Regulator` has sole ownership of `self.rdev` and is never read outside of the C
 // implementation. It is safe to use it from any thread.
 unsafe impl Send for Regulator {}
+unsafe impl Sync for Regulator {}
 
 mod sealed {
     pub trait Sealed {}
