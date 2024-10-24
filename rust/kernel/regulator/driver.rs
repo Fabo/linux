@@ -138,104 +138,104 @@ pub trait Driver {
     /// Return one of the supported voltages, in microvolt; zero if the selector indicates a
     /// voltage that is unusable by the system; or negative errno. Selectors range from zero to one
     /// less than the number of voltages supported by the system.
-    fn list_voltage(_rdev: &mut Regulator, _selector: u32) -> Result<i32> {
+    fn list_voltage(&mut self, _selector: u32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regulator within the range specified. The driver should select the
     /// voltage closest to `min_uv`.
-    fn set_voltage(_rdev: &mut Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
+    fn set_voltage(&mut self, _min_uv: i32, _max_uv: i32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regulator using the specified selector.
-    fn set_voltage_sel(_rdev: &mut Regulator, _selector: u32) -> Result {
+    fn set_voltage_sel(&mut self, _selector: u32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Convert a voltage into a selector.
-    fn map_voltage(_rdev: &mut Regulator, _min_uv: i32, _max_uv: i32) -> Result<i32> {
+    fn map_voltage(&mut self, _min_uv: i32, _max_uv: i32) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Get the currently configured voltage for the regulator; Returns
     /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
     /// set yet.
-    fn get_voltage(_rdev: &mut Regulator) -> Result<i32> {
+    fn get_voltage(&mut self) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Get the currently configured voltage selector for the regulator; Returns
     /// [`ENOTRECOVERABLE`] if the regulator can't be read at bootup and hasn't been
     /// set yet.
-    fn get_voltage_sel(_rdev: &mut Regulator) -> Result<i32> {
+    fn get_voltage_sel(&mut self) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Configure a limit for a current-limited regulator.
     ///
     /// The driver should select the current closest to `max_ua`.
-    fn set_current_limit(_rdev: &mut Regulator, _min_ua: i32, _max_ua: i32) -> Result {
+    fn set_current_limit(&mut self, _min_ua: i32, _max_ua: i32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Get the configured limit for a current-limited regulator.
-    fn get_current_limit(_rdev: &mut Regulator) -> Result<i32> {
+    fn get_current_limit(&mut self) -> Result<i32> {
         Err(ENOTSUPP)
     }
 
     /// Enable or disable the active discharge of the regulator.
-    fn set_active_discharge(_rdev: &mut Regulator, _enable: bool) -> Result {
+    fn set_active_discharge(&mut self, _enable: bool) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Configure the regulator as enabled.
-    fn enable(_rdev: &mut Regulator) -> Result {
+    fn enable(&mut self) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Configure the regulator as disabled.
-    fn disable(_rdev: &mut Regulator) -> Result {
+    fn disable(&mut self) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Returns enablement state of the regulator.
-    fn is_enabled(_rdev: &mut Regulator) -> Result<bool> {
+    fn is_enabled(&mut self) -> Result<bool> {
         Err(ENOTSUPP)
     }
 
     /// Set the configured operating [`Mode`] for the regulator.
-    fn set_mode(_rdev: &mut Regulator, _mode: Mode) -> Result {
+    fn set_mode(&mut self, _mode: Mode) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Get the configured operating [`Mode`] for the regulator
-    fn get_mode(_rdev: &mut Regulator) -> Mode {
+    fn get_mode(&mut self) -> Mode {
         Mode::Invalid
     }
 
     /// Report the regulator [`Status`].
-    fn get_status(_rdev: &mut Regulator) -> Result<Status> {
+    fn get_status(&mut self) -> Result<Status> {
         Err(ENOTSUPP)
     }
 
     /// Set the voltage for the regaultor when the system is suspended.
-    fn set_suspend_voltage(_rdev: &mut Regulator, _uv: i32) -> Result {
+    fn set_suspend_voltage(&mut self, _uv: i32) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Mark the regulator as enabled when the system is suspended.
-    fn set_suspend_enable(_rdev: &mut Regulator) -> Result {
+    fn set_suspend_enable(&mut self) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Mark the regulator as disabled when the system is suspended.
-    fn set_suspend_disable(_rdev: &mut Regulator) -> Result {
+    fn set_suspend_disable(&mut self) -> Result {
         Err(ENOTSUPP)
     }
 
     /// Set the operating mode for the regulator when the system is suspended.
-    fn set_suspend_mode(_rdev: &mut Regulator, _mode: Mode) -> Result {
+    fn set_suspend_mode(&mut self, _mode: Mode) -> Result {
         Err(ENOTSUPP)
     }
 }
@@ -376,20 +376,6 @@ impl<T: ForeignOwnable + Send + Sync> Config<T> {
     pub fn with_regmap(mut self, regmap: Arc<Regmap>) -> Self {
         self.regmap = Some(regmap);
         self
-    }
-}
-
-/// Registration structure for Regulator drivers.
-pub struct Registration(#[allow(dead_code)] Regulator);
-
-impl Registration {
-    /// register a Regulator driver
-    pub fn register<T: ForeignOwnable + Send + Sync>(
-        dev: impl AsRef<Device>,
-        desc: &'static Desc,
-        cfg: Config<T>,
-    ) -> Result<Self> {
-        Ok(Self(Regulator::register(dev, desc, cfg)?))
     }
 }
 

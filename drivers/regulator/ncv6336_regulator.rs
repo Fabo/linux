@@ -101,7 +101,7 @@ static NCV6336_DESC: Desc = Desc::new::<Ncv6336>(c_str!("ncv6336"), Type::Voltag
         0,
     );
 
-struct Ncv6336Data {
+struct Ncv6336Regulator {
     fields: regmap::Fields<{ FIELD_DESCS.count() }>,
 }
 
@@ -124,64 +124,62 @@ impl i2c::Driver for Ncv6336 {
         let rid = rid::value::read(&mut fields)?;
         let fid = fid::value::read(&mut fields)?;
 
-        let data = Arc::pin_init(new_mutex!(Ncv6336Data { fields }), GFP_KERNEL)?;
+        let data = Arc::pin_init(new_mutex!(Ncv6336Regulator { fields }), GFP_KERNEL)?;
 
         let config = Config::new(&client, data.clone()).with_regmap(regmap.clone());
-        let registration = Registration::register(&client, &NCV6336_DESC, config)?;
+        let regulator = Regulator::register(&client, &NCV6336_DESC, config)?;
 
         dev_info!(
             client.as_ref(),
             "PID: {pid:#x}, RID: {rid:#x}, FID: {fid:#x}"
         );
 
-        let drvdata = KBox::new(Self(registration), GFP_KERNEL)?;
+        let drvdata = KBox::new(Self(regulator), GFP_KERNEL)?;
 
         Ok(drvdata.into())
     }
 }
 
 #[vtable]
-impl Driver for Ncv6336 {
-    type Data = Arc<Mutex<Ncv6336Data>>;
-
-    fn list_voltage(reg: &mut Regulator, selector: u32) -> Result<i32> {
-        reg.list_voltage_linear(selector)
+impl Driver for Ncv6336Regulator {
+    fn list_voltage(&mut self, selector: u32) -> Result<i32> {
+        self.list_voltage_linear(selector)
     }
 
-    fn enable(reg: &mut Regulator) -> Result {
-        reg.enable_regmap()
+    fn enable(&mut self) -> Result {
+        self.enable_regmap()
     }
 
-    fn disable(reg: &mut Regulator) -> Result {
-        reg.disable_regmap()
+    fn disable(&mut self) -> Result {
+        self.disable_regmap()
     }
 
-    fn is_enabled(reg: &mut Regulator) -> Result<bool> {
-        reg.is_enabled_regmap()
+    fn is_enabled(&mut self) -> Result<bool> {
+        self.is_enabled_regmap()
     }
 
-    fn set_active_discharge(reg: &mut Regulator, enable: bool) -> Result {
-        reg.set_active_discharge_regmap(enable)
+    fn set_active_discharge(&mut self, enable: bool) -> Result {
+        self.set_active_discharge_regmap(enable)
     }
 
-    fn set_current_limit(reg: &mut Regulator, min_ua: i32, max_ua: i32) -> Result {
-        reg.set_current_limit_regmap(min_ua, max_ua)
+    fn set_current_limit(&mut self, min_ua: i32, max_ua: i32) -> Result {
+        self.set_current_limit_regmap(min_ua, max_ua)
     }
 
-    fn get_current_limit(reg: &mut Regulator) -> Result<i32> {
-        reg.get_current_limit_regmap()
+    fn get_current_limit(&mut self) -> Result<i32> {
+        self.get_current_limit_regmap()
     }
 
-    fn set_voltage_sel(reg: &mut Regulator, selector: u32) -> Result {
-        reg.set_voltage_sel_regmap(selector)
+    fn set_voltage_sel(&mut self, selector: u32) -> Result {
+        self.set_voltage_sel_regmap(selector)
     }
 
-    fn get_voltage_sel(reg: &mut Regulator) -> Result<i32> {
-        reg.get_voltage_sel_regmap()
+    fn get_voltage_sel(&mut self) -> Result<i32> {
+        self.get_voltage_sel_regmap()
     }
 
-    fn set_mode(reg: &mut Regulator, mode: Mode) -> Result {
-        let data = reg.data::<Self::Data>();
+    fn set_mode(&mut self, mode: Mode) -> Result {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         match mode {
@@ -191,8 +189,8 @@ impl Driver for Ncv6336 {
         }
     }
 
-    fn get_mode(reg: &mut Regulator) -> Mode {
-        let data = reg.data::<Self::Data>();
+    fn get_mode(&mut self) -> Mode {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         match command::pwmvsel0::is_set(fields) {
@@ -202,16 +200,16 @@ impl Driver for Ncv6336 {
         }
     }
 
-    fn get_status(reg: &mut Regulator) -> Result<Status> {
-        if !Self::is_enabled(reg)? {
+    fn get_status(&mut self) -> Result<Status> {
+        if !self.is_enabled()? {
             return Ok(Status::Off);
         }
 
-        Ok(Self::get_mode(reg).into())
+        Ok(self.get_mode().into())
     }
 
-    fn set_suspend_voltage(reg: &mut Regulator, uv: i32) -> Result {
-        let data = reg.data::<Self::Data>();
+    fn set_suspend_voltage(&mut self, uv: i32) -> Result {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         let quot = (uv - 600000) / 6250;
@@ -221,24 +219,24 @@ impl Driver for Ncv6336 {
         progvsel1::voutvsel1::write(fields, selector as _)
     }
 
-    fn set_suspend_enable(reg: &mut Regulator) -> Result {
-        let data = reg.data::<Self::Data>();
+    fn set_suspend_enable(&mut self) -> Result {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         progvsel1::envsel1::set(fields)?;
         command::vselgt::clear(fields)
     }
 
-    fn set_suspend_disable(reg: &mut Regulator) -> Result {
-        let data = reg.data::<Self::Data>();
+    fn set_suspend_disable(&mut self) -> Result {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         progvsel1::envsel1::clear(fields)?;
         command::vselgt::set(fields)
     }
 
-    fn set_suspend_mode(reg: &mut Regulator, mode: Mode) -> Result {
-        let data = reg.data::<Self::Data>();
+    fn set_suspend_mode(&mut self, mode: Mode) -> Result {
+        let data = self.data::<Self::Data>();
         let fields = &mut data.lock().fields;
 
         match mode {
