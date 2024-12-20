@@ -3,82 +3,109 @@ use crate::{
     device::Device,
     drm::connector::{Connector, Type},
     error::{code::*, from_result, to_result, Result},
-    macros::vtable,
     prelude::*,
-    types::ForeignOwnable,
+    types::{ForeignOwnable, Opaque},
 };
-use core::{marker::PhantomData, ops::DerefMut};
+use core::{marker::PhantomData};
 
-pub struct Panel(KBox<bindings::drm_panel>);
+/// DRM Panel.
+///
+/// # Invariants
+#[repr(transparent)]
+#[pin_data]
+pub struct Panel {
+    #[pin]
+    panel: Opaque<bindings::drm_panel>,
+}
 
 impl Panel {
-    pub fn new<T: Operations>(parent: impl AsRef<Device>, connector_type: Type) -> Result<Self> {
-        let this: bindings::drm_panel = unsafe { core::mem::zeroed() };
-        let ops = unsafe { OperationsVtable::<T>::build() };
-        let mut this = Self(KBox::new(this, GFP_KERNEL)?);
+    /// Create a new DRM panel.
+    pub fn new<T: Operations>(parent: impl AsRef<Device>, connector_type: Type) -> impl PinInit<Self, Error> {
+        let ops = OperationsVtable::<T>::build();
 
-        unsafe {
-            bindings::drm_panel_init(
-                (&mut this.0).deref_mut(),
-                parent.as_ref().as_raw(),
-                ops,
-                connector_type as _,
-            )
-        };
+        try_pin_init!(Self {
+            panel <- Opaque::try_ffi_init(|ptr: *mut bindings::drm_panel| {
+                // SAFETY: `try_ffi_init` guarantees that `ptr` is valid for write.
+                unsafe { ptr.write(bindings::drm_panel::default()) };
 
-        Ok(this)
+                unsafe {
+                    bindings::drm_panel_init(
+                        ptr,
+                        parent.as_ref().as_raw(),
+                        ops,
+                        connector_type as _,
+                    )
+                };
+
+                Ok::<(), Error>(())
+            }),
+        })
     }
 
-    // FIXME: check that the correct backlight class is enabled, otherwise drm_panel_of_backlight
-    // becomes a C static inline function
+    /// Enable backlight via device node.
+    #[cfg(CONFIG_BACKLIGHT_CLASS_DEVICE = "y")]
     pub fn init_of_backlight(&mut self) -> Result {
-        to_result(unsafe { bindings::drm_panel_of_backlight((&mut self.0).deref_mut()) })
+        to_result(unsafe { bindings::drm_panel_of_backlight(self.panel.get()) })
     }
 
+    /// Prepare previous controller first.
     pub fn prepare_prev_first(&mut self, val: bool) {
-        self.0.prepare_prev_first = val;
+        unsafe {
+            (*self.panel.get()).prepare_prev_first = val;
+        };
     }
 
-    pub fn register(mut self) -> PanelRegistration {
-        unsafe { bindings::drm_panel_add((&mut self.0).deref_mut()) };
-        PanelRegistration(self)
+    /// Register panel.
+    pub fn register(self) -> Registration {
+        unsafe { bindings::drm_panel_add(self.panel.get()) };
+        Registration(self)
+    }
+
+    /// Unregister panel.
+    fn unregister(&mut self) {
+        unsafe { bindings::drm_panel_remove(self.panel.get()) };
     }
 }
 
-pub struct PanelRegistration(Panel);
+/// Panel registration.
+pub struct Registration(Panel);
 
-impl Drop for PanelRegistration {
+impl Drop for Registration {
     fn drop(&mut self) {
-        unsafe { bindings::drm_panel_remove((&mut self.0 .0).deref_mut()) };
+        self.0.unregister();
     }
 }
 
-unsafe impl Send for PanelRegistration {}
+unsafe impl Send for Registration {}
 
+/// [`Panel`]'s operations
 #[vtable]
 pub trait Operations {
+    /// User data that will be accessible to all operations.
     type Data: ForeignOwnable + Send + Sync;
 
+    /// Turn on panel and perform set up.
     fn prepare(_data: <Self::Data as ForeignOwnable>::Borrowed<'_>) -> Result {
         Err(ENOTSUPP)
     }
 
+    /// Turn off panel.
     fn unprepare(_data: <Self::Data as ForeignOwnable>::Borrowed<'_>) -> Result {
         Err(ENOTSUPP)
     }
 
+    /// Add modes to the connector
     fn get_modes(
         _data: <Self::Data as ForeignOwnable>::Borrowed<'_>,
         _connector: &mut Connector,
-    ) -> Result<u16> {
-        Err(ENOTSUPP)
-    }
+    ) -> Result<u16>;
 }
 
-pub(crate) struct OperationsVtable<T>(PhantomData<T>);
+struct OperationsVtable<T>(PhantomData<T>);
 
 impl<T: Operations> OperationsVtable<T> {
     const VTABLE: bindings::drm_panel_funcs = bindings::drm_panel_funcs {
+        get_modes: Some(Self::get_modes_callback),
         enable: None,
         disable: None,
         get_orientation: None,
@@ -94,14 +121,9 @@ impl<T: Operations> OperationsVtable<T> {
         } else {
             None
         },
-        get_modes: if T::HAS_GET_MODES {
-            Some(Self::get_modes_callback)
-        } else {
-            None
-        },
     };
 
-    pub(crate) const unsafe fn build() -> &'static bindings::drm_panel_funcs {
+    const fn build() -> &'static bindings::drm_panel_funcs {
         &Self::VTABLE
     }
 

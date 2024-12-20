@@ -7,7 +7,7 @@ use kernel::{
     c_str,
     drm::{
         self, connector, mipi_dsi,
-        panel::{self, Panel, PanelRegistration},
+        panel::{self, Panel},
     },
     gpio::consumer as gpio,
     of,
@@ -26,7 +26,7 @@ struct TrulyR63350 {
     reset_gpio: Option<gpio::Descriptor>,
     prepared: bool,
     pdata: &'static PlatformData,
-    _panel: PanelRegistration,
+    _panel: Pin<KBox<Panel>>,
 }
 
 impl mipi_dsi::Driver for TrulyR63350 {
@@ -38,10 +38,14 @@ impl mipi_dsi::Driver for TrulyR63350 {
     fn probe(mut dsi: mipi_dsi::Device, id_info: Option<&Self::IdInfo>) -> Result<Self::Data> {
         let id_info = id_info.ok_or(EINVAL)?;
 
-        let mut panel = Panel::new::<Self>(&dsi, connector::Type::DSI)?;
-        panel.init_of_backlight()?;
-        panel.prepare_prev_first(true);
-        let panel = panel.register();
+        let panel = Panel::new::<Self>(&dsi, connector::Type::DSI).pin_chain(|panel| {
+            panel.init_of_backlight()?;
+            panel.prepare_prev_first(true);
+            panel.register();
+
+            Ok(())
+        });
+        let panel = KBox::try_pin_init(panel, GFP_KERNEL)?;
 
         let reset_gpio =
             gpio::Descriptor::get_optional(dsi.as_ref(), c_str!("reset"), gpio::Flags::OutLow)?;
