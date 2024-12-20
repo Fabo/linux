@@ -27,9 +27,10 @@ pub enum Flags {
     OutHighOpenDrain = bindings::gpiod_flags_GPIOD_OUT_HIGH_OPEN_DRAIN,
 }
 
-pub struct Desc(NonNull<bindings::gpio_desc>);
+/// GPIO Descriptor
+pub struct Descriptor(NonNull<bindings::gpio_desc>);
 
-impl Desc {
+impl Descriptor {
     /// Obtain a GPIO for a given GPIO function.
     ///
     /// See [gpiod_get](`https://docs.kernel.org/driver-api/gpio/index.html#c.gpiod_get`)
@@ -66,10 +67,10 @@ impl Desc {
     }
 }
 
-impl Drop for Desc {
+impl Drop for Descriptor {
     fn drop(&mut self) {
         unsafe { bindings::gpiod_put(self.0.as_ptr()) }
     }
 }
 
-unsafe impl Send for Desc {}
+unsafe impl Send for Descriptor {}

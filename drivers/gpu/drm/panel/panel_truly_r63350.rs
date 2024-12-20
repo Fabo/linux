@@ -23,7 +23,7 @@ type DeviceData = Mutex<TrulyR63350>;
 struct TrulyR63350 {
     dsi: mipi_dsi::Device,
     regulators: [Regulator; 3],
-    reset_gpio: Option<gpio::Desc>,
+    reset_gpio: Option<gpio::Descriptor>,
     prepared: bool,
     pdata: &'static PlatformData,
     _panel: PanelRegistration,
@@ -44,7 +44,7 @@ impl mipi_dsi::Driver for TrulyR63350 {
         let panel = panel.register();
 
         let reset_gpio =
-            gpio::Desc::get_optional(dsi.as_ref(), c_str!("reset"), gpio::Flags::OutLow)?;
+            gpio::Descriptor::get_optional(dsi.as_ref(), c_str!("reset"), gpio::Flags::OutLow)?;
 
         let regulators = [
             Regulator::get(dsi.as_ref(), c_str!("avdd"))?,

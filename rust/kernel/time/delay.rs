@@ -8,7 +8,6 @@
 //! C header: [`include/linux/delay.h`](srctree/include/linux/delay.h).
 
 use crate::time;
-use core::ffi::c_ulong;
 
 /// Sleeps for a given duration at least.
 ///
