@@ -6,7 +6,7 @@ use crate::{
     prelude::*,
     types::{ForeignOwnable, Opaque},
 };
-use core::{marker::PhantomData};
+use core::marker::PhantomData;
 
 /// DRM Panel.
 ///
@@ -20,7 +20,10 @@ pub struct Panel {
 
 impl Panel {
     /// Create a new DRM panel.
-    pub fn new<T: Operations>(parent: impl AsRef<Device>, connector_type: Type) -> impl PinInit<Self, Error> {
+    pub fn new<T: Operations>(
+        parent: impl AsRef<Device>,
+        connector_type: Type,
+    ) -> impl PinInit<Self, Error> {
         let ops = OperationsVtable::<T>::build();
 
         try_pin_init!(Self {
